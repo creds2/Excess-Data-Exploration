@@ -5,6 +5,7 @@ library(readr)
 library(ggplot2)
 library(Hmisc)
 library(reshape2)
+library(xgboost)
 
 # Input Data --------------------------------------------------------------
 dir.create("temp")
@@ -325,7 +326,7 @@ ggplot(lsoa,aes(x=Income, y=motor)) +
        y = "%Travel to Work by car/morobike", 
        col = "Cluster" ) + 
  # ylim(0,100) +
-  ggsave("plots/lsoa_carsHH_vs_Rooms_new_cluster.jpg")
+  ggsave("plots/lsoa_income_vs_T2W.jpg")
 
 
 # Box plots for new cluster -----------------------------------------------
@@ -364,3 +365,69 @@ ggplot(lsoa, aes(cluster2, AvT2W)) +
   labs(x = "Cluster",
        y = "Average Travel to Work distance") + 
   ggsave("plots/new_cluster_AvT2W.jpg")
+
+ggplot(lsoa, aes(cluster2, dom)) +
+  geom_boxplot() +
+  labs(x = "Cluster",
+       y = "Average HH Domestic Energy (kWh)") + 
+  ggsave("plots/new_cluster_dom.jpg")
+
+
+# Try some models ---------------------------------------------------------
+lsoa_model <- lsoa[,!names(lsoa) %in% c("LSOA11CD","dom","SGN","SupergroupCode","SupergroupName","Region","Reg","cluster","cluster2","RU","RUC11CD")]
+lsoa_model$gasAv[is.na(lsoa_model$gasAv)] <- 0
+lsoa_model$all <- lsoa_model$gasAv + lsoa_model$elecAv + lsoa_model$nrgHH
+
+lsoa_sample <- lsoa_model[sample(1:nrow(lsoa_model), round(nrow(lsoa_model)/10)),]
+lsoa_sample_mat <- as.matrix(lsoa_sample[,!colnames(lsoa_sample) %in% c("nrgHH","gasAv","elecAv","all")])
+lsoa_model_mat <- as.matrix(lsoa_model[,!colnames(lsoa_model) %in% c("nrgHH","gasAv","elecAv","all")])
+
+
+# Electricity
+m_elec = xgboost(data = lsoa_sample_mat,
+                 label = lsoa_sample$elecAv, nrounds = 10, max_depth = 5)
+
+plot(lsoa_model$elecAv, predict(m_elec, lsoa_model_mat)) +
+abline(0,1,col = "red")
+
+
+importance_m_elec = xgb.importance(model = m_elec, feature_names = colnames(lsoa_model_mat))
+png(filename="plots/importance_electricity.png")
+xgb.plot.importance(importance_m_elec, top_n = 15)
+dev.off()
+
+# Gas
+m_gas = xgboost(data = lsoa_sample_mat,
+                 label = lsoa_sample$gasAv, nrounds = 10, max_depth = 5)
+
+plot(lsoa_model$gasAv, predict(m_gas, lsoa_model_mat)) +
+  abline(0,1,col = "red")
+
+importance_m_gas = xgb.importance(model = m_gas, feature_names = colnames(lsoa_model_mat))
+png(filename="plots/importance_gas.png")
+xgb.plot.importance(importance_m_gas, top_n = 15)
+dev.off()
+
+# Vehicles
+m_vehicles = xgboost(data = lsoa_sample_mat,
+                label = lsoa_sample$nrgHH, nrounds = 10, max_depth = 5)
+
+plot(lsoa_model$nrgHH, predict(m_vehicles, lsoa_model_mat)) +
+  abline(0,1,col = "red")
+
+importance_m_vehicles = xgb.importance(model = m_vehicles, feature_names = colnames(lsoa_model_mat))
+png(filename="plots/importance_vehicles.png")
+xgb.plot.importance(importance_m_vehicles, top_n = 15)
+dev.off()
+
+# All
+m_all = xgboost(data = lsoa_sample_mat,
+                     label = lsoa_sample$all, nrounds = 10, max_depth = 5)
+
+plot(lsoa_model$all, predict(m_all, lsoa_model_mat)) +
+  abline(0,1,col = "red")
+
+importance_m_all = xgb.importance(model = m_all, feature_names = colnames(lsoa_model_mat))
+png(filename="plots/importance_all.png")
+xgb.plot.importance(importance_m_all, top_n = 15)
+dev.off()
