@@ -15,12 +15,23 @@ epc <- readRDS("data-prepared/epc.Rds")
 lsoa <- left_join(lsoa, modium, by = c("LSOA11CD" = "LSOA11"))
 lsoa <- left_join(lsoa, epc, by = c("LSOA11CD" = "LSOA11"))
 
-lsoa <- lsoa[,c("LSOA11CD","nrgHH","gasAv","elecAv","all","Dwellings","Crr_EE","Cluster_mode")]
+lsoa <- lsoa[,c("LSOA11CD","nrgHH","gasAv","elecAv","all","Dwellings","Crr_EE","Crr_mode","Cluster_mode")]
 
 ggplot(lsoa, aes(Crr_EE, gasAv)) +
-  geom_point()
+  geom_point(size = 0.5) +
+  geom_smooth(method = 'lm' )
+
+ggplot(lsoa, aes(Crr_mode, gasAv)) +
+  geom_boxplot()
+
+ggplot(lsoa, aes(Crr_mode, elecAv)) +
+  geom_boxplot()
 
 ggplot(lsoa, aes(Crr_EE, elecAv)) +
+  geom_point()
+  
+
+ggplot(lsoa, aes(Crr_EE, nrgHH)) +
   geom_point()
 
 
