@@ -80,7 +80,7 @@ lsoa_house <- lsoa_house[,c("LSOA11CD","elecAv","gasAv","RU","Income",
 # Cluster
 
 lsoa_clustering <- lsoa_house[,sapply(lsoa_house,class) %in% c("integer","numeric")]
-lsoa_clustering <- lsoa_clustering[,!names(lsoa_clustering) %in% c("elecAv","gasAv","Income")]
+lsoa_clustering <- lsoa_clustering[,!names(lsoa_clustering) %in% c("elecAv","gasAv","Income","Rooms","HHsize")]
 
 wss <- sapply(1:15,function(k){kmeans(lsoa_clustering, k, nstart=50,iter.max = 15 )$tot.withinss})
 plot(1:15, wss,
@@ -88,7 +88,7 @@ plot(1:15, wss,
       xlab="Number of clusters K",
       ylab="Total within-clusters sum of squares")
 
-clusters <- kmeans(lsoa_clustering, 7)
+clusters <- kmeans(lsoa_clustering, 6)
 lsoa_house$cluster_house <- as.numeric(clusters$cluster)
 
 cluster_summary <- lsoa_house[,sapply(lsoa_house,class) %in% c("integer","numeric")] %>%
@@ -107,10 +107,15 @@ cluster_summary$HHsize <- NULL
 
 cluster_summary_melt <- reshape2::melt(cluster_summary)
 ggplot(cluster_summary_melt, aes(y = value, x = variable, 
-                group = cluster_house, colour = cluster_house)) + coord_polar() + geom_point() + geom_path() + 
-  labs(x = NULL)
+                group = cluster_house, colour = cluster_house)) + 
+  coord_polar() + 
+  #geom_point() + 
+  geom_line() + 
+  labs(x = NULL) +
+  ggsave("plots/house_clusters.jpg")
 
 
+lsoa_house$cluster_house <- as.character(clusters$cluster)
 
 ggplot(lsoa_house, aes(cluster_house, elecAv)) +
   geom_boxplot() +
