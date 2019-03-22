@@ -154,4 +154,7 @@ lsoa <- left_join(lsoa, lsoa_12, by = "LSOA11")
 lsoa <- left_join(lsoa, lsoa_11, by = "LSOA11")
 lsoa <- left_join(lsoa, lsoa_10, by = "LSOA11")
 
-lsoa2 <- lsoa[,c(1,order(names(lsoa)[2:(ncol(lsoa)-1)]) + 1,ncol(lsoa))]
+lsoa <- lsoa[,c(1,order(names(lsoa)[2:(ncol(lsoa)-1)]) + 1,ncol(lsoa))]
+write_sf(lsoa,"data-prepared/Electricty_2010-17.gpkg")
+st_geometry(lsoa) <- NULL
+write.csv(lsoa,"data-prepared/Electricty_2010-17.csv", na = "", row.names = FALSE)
