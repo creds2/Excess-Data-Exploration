@@ -128,3 +128,66 @@ ggplot(lsoa_house, aes(cluster_house, gasAv)) +
   labs(x = "Cluster",
        y = "Household Gas") + 
   ggsave("plots/house_cluster_gas.jpg")
+
+
+# Ward Hierarchical Clustering
+# see https://www.statmethods.net/advstats/cluster.html 
+d <- dist(lsoa_house, method = "euclidean") # distance matrix
+fit1 <- hclust(d, method="ward.D")
+fit2 <- as.dendrogram(fit1)
+#plot(fit2, main="Main")
+plot(cut(fit2, h=11e5)$upper, 
+     main="Upper tree of cut at h=1e6") # display dendogram
+groups <- cutree(fit, k=13) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters
+
+# Open a PDF for plotting; units are inches by default
+
+# Ward Hierarchical Clustering with Bootstrapped p values
+library(pvclust)
+lsoa_clustering <- lsoa_house[,sapply(lsoa_house,class) %in% c("integer","numeric")]
+fit <- pvclust(lsoa_clustering, method.hclust="ward.D",
+               method.dist="euclidean")
+plot(fit) # dendogram with p values
+# add rectangles around groups highly supported by the data
+pvrect(fit, alpha=.95) 
+
+
+
+
+
+
+rect.hclust(fit, k=5, border="red") 
+
+lsoa_house$hcluster <- groups
+
+cluster_summary <- lsoa_house[,sapply(lsoa_house,class) %in% c("integer","numeric")] %>%
+  group_by(hcluster) %>%
+  summarise_all(mean)
+
+cluster_summary$hcluster <- as.character(cluster_summary$hcluster)
+for(i in 2:ncol(cluster_summary)){
+  cluster_summary[[i]] <- cluster_summary[[i]] / max(cluster_summary[[i]])
+}
+
+
+
+
+cluster_summary_melt <- reshape2::melt(cluster_summary)
+ggplot(cluster_summary_melt, aes(y = value, x = variable, 
+                                 group = hcluster, colour = hcluster)) + 
+  coord_polar() + 
+  #geom_point() + 
+  geom_line() + 
+  labs(x = NULL) +
+  ggsave("plots/house_hclusters.jpg")
+
+# plit out two as an example
+ggplot(cluster_summary_melt[cluster_summary_melt$hcluster %in% c(7,11),], aes(y = value, x = variable, 
+                                 group = hcluster, colour = hcluster)) + 
+  coord_polar() + 
+  #geom_point() + 
+  geom_line() + 
+  labs(x = NULL) +
+  ggsave("plots/house_hclusters_c7_11.jpg")
+
