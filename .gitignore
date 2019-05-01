@@ -35,3 +35,10 @@ vignettes/*.pdf
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
 data-input/Output Area Classification/output-area-classification.zip
+data-input/Boundaires/England_lsoa_2011_clipped.zip
+data-input/Boundaires/England_lsoa_2011_sgen_clipped.zip
+data-input/Boundaires/infuse_gb_2011_clipped.zip
+data-input/Boundaires/Scotland_oa_2011_clipped.zip
+data-input/Boundaires/SG_DataZoneBdry_2011.zip
+data-input/Boundaires/Wales_lsoa_2011_clipped.zip
+data-input/Boundaires/Wales_lsoa_2011_sgen_clipped.zip
