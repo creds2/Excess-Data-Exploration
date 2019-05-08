@@ -1,12 +1,14 @@
 # Cluster by basic building characteritics
 library(dplyr)
 library(ggplot2)
+library(xgboost)
 
 # Input Data --------------------------------------------------------------
 dir.create("temp")
 unzip("../Secure-Data/Excess/XSExpData1.zip", exdir = "temp")
 lsoa <- read.csv("temp/XSExpData1.csv")
-lsoa <- read.csv("I://Excess-Data-Exploration/Secure-Data/Excess/XSExpData1/XSExpData1.csv")
+#I couldn't work out how to load the secure data stuff
+lsoa <- read.csv("X://Excess-Data-Exploration/Secure-Data/Excess/XSExpData1/XSExpData1.csv")
 unlink("temp", recursive = T)
 
 age <- readRDS("data-prepared/age.Rds")
@@ -113,7 +115,7 @@ ggplot(cluster_summary_melt, aes(y = value, x = variable,
   #geom_point() + 
   geom_line() + 
   labs(x = NULL) +
-  ggsave("plots/house_clusters.jpg")
+  ggsave("Tim/plots/house_clusters.jpg")
 
 
 lsoa_house$cluster_house <- as.character(clusters$cluster)
@@ -122,13 +124,13 @@ ggplot(lsoa_house, aes(cluster_house, elecAv)) +
   geom_boxplot() +
   labs(x = "Cluster",
        y = "Household Electricity") + 
-  ggsave("plots/house_cluster_electricity.jpg")
+  ggsave("Tim/plots/house_cluster_electricity.jpg")
 
 ggplot(lsoa_house, aes(cluster_house, gasAv)) +
   geom_boxplot() +
   labs(x = "Cluster",
        y = "Household Gas") + 
-  ggsave("plots/house_cluster_gas.jpg")
+  ggsave("Tim/plots/house_cluster_gas.jpg")
 
 
 # Ward Hierarchical Clustering
