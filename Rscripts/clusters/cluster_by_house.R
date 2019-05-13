@@ -157,8 +157,8 @@ pvrect(fit, alpha=.95)
 
 
 
-rect.hclust(fit, k=5, border="red") 
-
+#rect.hclust(fit, k=5, border="red") 
+groups <- cutree(fit, k=13)
 lsoa_house$hcluster <- groups
 
 cluster_summary <- lsoa_house[,sapply(lsoa_house,class) %in% c("integer","numeric")] %>%
