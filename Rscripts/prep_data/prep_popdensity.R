@@ -51,3 +51,6 @@ popS <- st_drop_geometry(popS)
 
 popS <- popS[,c("data-zone","area_km","dense_2011", "dense_2017")]
 names(popS) <- c("LSOA11","area_km","dense_2011", "dense_2017")
+
+popAll <- rbind(popEW, popS)
+saveRDS(popAll, "data-prepared/populationDensity.Rds")
