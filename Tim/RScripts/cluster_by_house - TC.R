@@ -7,7 +7,6 @@ library(xgboost)
 dir.create("temp")
 unzip("../Secure-Data/Excess/XSExpData1.zip", exdir = "temp")
 lsoa <- read.csv("temp/XSExpData1.csv")
-
 unlink("temp", recursive = T)
 
 age <- readRDS("data-prepared/age.Rds")

@@ -38,8 +38,26 @@ ggplot(c12, aes(cluster_NOnrg, dom)) +
        y = "Domestic Energy") + 
   ggsave("Tim/plots/house_cluster_dom12ord.jpg")
 #plot outliers a different colour
-plot_Data <- ddply(c12, .(cluster_NOnrg), mutate, Q1=quantile(dom, 1/4), Q3=quantile(dom, 3/4), IQR=Q3-Q1, upper.limit=Q3+1.5*IQR, lower.limit=Q1-1.5*IQR)
+#Electricity
+plot_Data <- ddply(c12, .(cluster_NOnrg), mutate, Q1=quantile(elecAv, 1/4), Q3=quantile(elecAv, 3/4), IQR=Q3-Q1, upper.limit=Q3+1.5*IQR, lower.limit=Q1-1.5*IQR)
+ggplot(plot_Data, aes(x=cluster_NOnrg, y=elecAv)) +
+  geom_boxplot() +
+  labs(x = "Cluster",
+       y = "Domestic Electricity")+
+  geom_point(data=plot_Data[plot_Data$elecAv > plot_Data$upper.limit ,],colour="red")
+ggsave("Tim/plots/house_cluster_elec12ord-redoutliers.jpg")
+#gas
+plot_Data <- ddply(c12, .(cluster_NOnrg), mutate, Q1=quantile(gasAv, 1/4), Q3=quantile(gasAv, 3/4), IQR=Q3-Q1, upper.limit=Q3+1.5*IQR, lower.limit=Q1-1.5*IQR)
+ggplot(plot_Data, aes(x=cluster_NOnrg, y=gasAv)) +
+  geom_boxplot() +
+  labs(x = "Cluster",
+       y = "Domestic Gas")+
+  geom_point(data=plot_Data[plot_Data$gasAv > plot_Data$upper.limit ,],colour="red")
+ggsave("Tim/plots/house_cluster_gas12ord-redoutliers.jpg")
 
+
+
+plot_Data <- ddply(c12, .(cluster_NOnrg), mutate, Q1=quantile(dom, 1/4), Q3=quantile(dom, 3/4), IQR=Q3-Q1, upper.limit=Q3+1.5*IQR, lower.limit=Q1-1.5*IQR)
 ggplot(plot_Data, aes(x=cluster_NOnrg, y=dom)) +
   geom_boxplot() +
   labs(x = "Cluster",
