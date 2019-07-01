@@ -11,14 +11,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Setup
 
-```{r, include=FALSE}
-secure_path <- "E:/OneDrive - University of Leeds/CREDS Data/Tim Share"
+bringing in the basic settings we need for R.
 
+```{r, include=FALSE}
+#secure_path <- "E:/OneDrive - University of Leeds/CREDS Data/Tim Share"
+secure_path <- "D:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/Tim Share"
 ```
 
 ## Input data
 
-First load the data, some is England and Wales only so we will start with just there.
+First load the data, some is in England and Wales only so we will start with just there. The datasets in use are:
+
+1. LSOA boundaries
+1. Annual Gas & Electricity domestic usage for LSOA
+1. 2011 MOT data for miles driven by car (also have vans but not using)
+1. Building age (based on counts of bands but estimating mean age)
+1. Basic census demographics and building types (e.g. semi-detached)
+1. Heating types from census
+1. EPC average score (aggregated up from OA)
+1. Population counts and population density
+1. Number of rooms/bedrooms from census
 
 ```{r, include=FALSE}
 library(sf)
@@ -53,7 +65,7 @@ names(experian) <- c("LSOA","median_household_income")
 
 ```
 
-We will subets the data and join togther
+We will subsets the data and join together into a single master table. When possible converting values to percentages to aid comparison and prevent model distortions.
 
 ```{r, include=FALSE}
 bounds <- bounds[bounds$LSOA11 %in% census$CODE,]
@@ -133,15 +145,11 @@ rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, roo
 ```
 
 
-
-
 ## Examining Correlations
 
-Let see which variaibles are correlated with energy use:
+Before getting into the detail lets Let see which variables are correlated with energy use. This gives an overall idea of what matters.
 
 ### Gas
-
-
 
 ```{r, include=FALSE}
 all_matrix <- all[,2:ncol(all)]
@@ -153,30 +161,31 @@ correlations_gas <- correlations_gas[order(correlations_gas$R),]
 correlations_gas <- correlations_gas[correlations_gas$R > 0.5 | correlations_gas$R < -0.5,]
 ```
 
-A table of the top correlations
+A table of the top correlations, showing persons R and P-values. Correlating with 2011 gas consumption as most data (e.g. census if from that year)
 
 ```{r, echo=FALSE}
 correlations_gas
 ```
 
-The strongest correlation is with the number of rooms. This is unsurprising as bigger houses require more heating. The next strongest correlation is with the number of bedrooms, but as the number of bedrooms is closely realted to the number of rooms this is not very informative.
+The strongest correlation is with the number of rooms. This is unsurprising as bigger houses require more heating. The next strongest correlation is with the number of bedrooms, but as the number of bedrooms is closely related to the number of rooms this is not very informative.
 
+Other strong correlations are % of AB social grade people being strongly positive and % DE Social grade people being strongly negative. Also note that working from home and being self-employed is predictive of higher gas usage, perhaps showing households that are heated all day?
 
 We could try a model of the top 5 variaibles
 ```{r}
-# gas_lm0 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_DE. + mean_bedrooms + SocGrade_AB. + median_household_income, data=all, na.action = na.exclude)
+#gas_lm0 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_DE. + mean_bedrooms + SocGrade_AB. + median_household_income, data=all, na.action = na.exclude)
 # summary(gas_lm0)
 ```
 
-It would be more intresting to remove the affect of the number of rooms and see what is strongly correlated with the residuals.
+It would be more interesting to remove the effect of the number of rooms and see what is strongly correlated with the residuals.
 
 ```{r, echo=FALSE}
-plot(all$MeanDomGas_11_kWh, all$mean_rooms,
-     xlab = "Mean Domestic Gas consumption 2011 (kWh)",
-     ylab = "Mean number of rooms per house")
+plot(all$mean_rooms, all$MeanDomGas_11_kWh, 
+     ylab = "Mean Domestic Gas consumption 2011 (kWh)",
+     xlab = "Mean number of rooms per house")
 ```
 
-Lets look at what best predicts the residuals after accounting for the number of rooms.
+Let's look at what best predicts the residuals after accounting for the number of rooms.
 
 ```{r, echo=FALSE}
 gas_lm1 = lm(MeanDomGas_11_kWh ~ mean_rooms, data=all, na.action = na.exclude)
@@ -197,19 +206,21 @@ correlations_gas_res <- correlations_gas_res[correlations_gas_res$R > 0.3 | corr
 correlations_gas_res
 ```
 
-Some of these are more realted to car use (e.g. T2W_Car is the % of people travelling to work by car). Of the ones about houses SocialGrade_C2 is the strongest correlation.
+Some of these are more related to car use (e.g. T2W_Car is the % of people travelling to work by car). Of the ones about houses, SocialGrade_C2 is the strongest correlation. This is interesting as it seems that by accounting for the number of rooms we have removed some but not all the of the social grade effect. Could C2 class people be slightly different from the other social classes?
+
+Plots of the relationship between the proportion of people with class C2 and gas consumption. And the correlation between residuals for the model and social grade C2.
 
 ```{r, echo=FALSE}
-plot(all$MeanDomGas_11_kWh, all$SocGrade_C2.,
-     xlab = "Mean Domestic Gas consumption 2011 (kWh)",
-     ylab = "Social Grade C2")
+plot(all$SocGrade_C2., all$MeanDomGas_11_kWh, 
+     ylab = "Mean Domestic Gas consumption 2011 (kWh)",
+     xlab = "Social Grade C2")
 
-plot(all$SocGrade_C2.,all$gas_lm1_res, 
+plot(all$gas_lm1_res, all$SocGrade_C2., 
      ylab = "Number of rooms residuals",
      xlab = "Social Grade C2")
 ```
 
-So let try a new model with the two variaibles
+So let try a new model with the two variables. This improved the model from an  R squared of 0.54 to 0.63
 
 ```{r, echo=FALSE}
 gas_lm2 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_C2., data=all, na.action = na.exclude)
@@ -221,7 +232,7 @@ abline(a=0,b=1, col = "red")
 ```
 
 
-We can repete the process
+We can repeat the process, of looking at the residuals.
 
 ```{r, echo=FALSE}
 all$gas_lm2_res = residuals(gas_lm2, na.action = na.exclude)
@@ -236,9 +247,9 @@ correlations_gas_res <- correlations_gas_res[correlations_gas_res$R > 0.2 | corr
 correlations_gas_res
 ```
 
-Hear some ofther appropiate variaibles such as the EPC rating (Crr_EE) and buidling age (mean_house_age) stand out as we the proortion of self empolyed people.
+Hear some other appropriate variables such as the EPC rating (Crr_EE) and building age (mean_house_age) stand out as we the proportion of self-employed people.
 
-Let try a final model with all these added variaibles.
+Let try a final model with all these added variables.
 
 ```{r, echo=FALSE}
 gas_lm3 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_C2. + Crr_EE + Self.Emp. + mean_house_age, data=all, na.action = na.exclude)
@@ -249,12 +260,22 @@ plot(predict(gas_lm3),all$MeanDomGas_11_kWh,
 abline(a=0,b=1, col = "red")
 ```
 
-So we have a model that can explain 68.9% of the variation in gas usage at LSOA level based on just 5 variables.
+So we have a model that can explain 68.9% of the variation in gas usage at LSOA level based on just 5 variables. Gas is tricky due to the off-gas grid areas which we have not properly captured, although the type of heating has not been very predictive.
+
+### Kitchen Sink Approach
+
+Let's throw the kitchen sink at the data that is even slightly correlated and see what is the best model we can get.
+
+```{r, echo=FALSE, eval=FALSE}
+all_gas <- all[,rownames(correlations_gas)]
+gas_lm4 = lm(MeanDomGas_11_kWh ~ (.)^2, data=all_gas, na.action = na.exclude)
+summary(gas_lm4)
+```
 
 
 ## Electricity
 
-Lets Do the same for electricity
+Let's do the same for electricity.
 
 ```{r}
 all_matrix <- all[,2:ncol(all)]
@@ -267,7 +288,7 @@ correlations_elec <- correlations_elec[correlations_elec$R > 0.5 | correlations_
 correlations_elec
 ```
 
-Here we se the top factors are (excluding car related ones) Number of rooms, Self Employed, and % gas heating, detached houses , and % other heating.
+Here we see the top factors are (excluding car related ones) Number of rooms, Self Employed, and % gas heating, detached houses, and % other heating. Again income matters but is not the top variable. That gas heating reduces electricity demand is clear, but why does electric heating not increase demand? A simple model based on a few top variables gets an R squared of 0.74.
 
 ```{r}
 elec_lm0 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + Whole_House_Detached. + pHeating_Other, 
@@ -275,11 +296,15 @@ elec_lm0 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + Whole
 summary(elec_lm0)
 ```
 
-What about the residuals?
+What about the residuals after accounting for the number of rooms?
 
 ```{r}
 elec_lm1 = lm(MeanDomElec_11_kWh ~ mean_rooms, data=all, na.action = na.exclude)
 summary(elec_lm1)
+
+```
+
+```{r, echo=FALSE}
 plot(predict(elec_lm1),all$MeanDomElec_11_kWh,
      xlab="predicted",ylab="actual")
 abline(a=0,b=1, col = "red")
@@ -296,7 +321,9 @@ correlations_elec_res <- correlations_elec_res[correlations_elec_res$R > 0.3 | c
 correlations_elec_res
 ```
 
-The top residuals are % of differnt heating types, self empoyed and working from home.
+Here the number of rooms is much less predictive than for gas. This suggests that other behaviours matter more than house size. Also, note there is a lot less variation between LSOAs in terms of their electricity usage.
+
+The top residuals are % of different heating types, self-employed and working from home.
 
 ```{r}
 elec_lm2 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + pHeating_Electric + pHeating_Other + T2W_Home., 
@@ -304,11 +331,13 @@ elec_lm2 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + pHeat
 summary(elec_lm2)
 ```
 
+We can get an R squared of 0.75 which is probably pushing the upper limit of what is possible, considering the quality of the data and that there will be some inherent randomness.
+
 ## Driving
 
-Finally lets look at driving
+Finally, let's look at driving. The top correlations are.
 
-```{r}
+```{r, echo=FALSE}
 all_matrix <- all[,2:ncol(all)]
 all_matrix <- data.matrix(all_matrix)
 
@@ -319,7 +348,7 @@ correlations_cars <- correlations_cars[correlations_cars$R > 0.5 | correlations_
 correlations_cars
 ```
 
-The top correlataions are quite broad, but inclicde household without cars, unemployment, and population density, car ownership per capita, number of rooms and bedrooms, and % travel to work by car.
+The top correlations are quite broad but include household without cars, unemployment, and population density, car ownership per capita, number of rooms and bedrooms, and % travel to work by car.
 
 ```{r}
 cars_lm0 = lm(miles_percap ~ cars_percap + T2W_Car. + NoCarsHH + Unemployed. + dense_2011, 
@@ -336,7 +365,7 @@ plot(predict(cars_lm0),all$miles_percap,
 abline(a=0,b=1, col = "red")
 ```
 
-There is a very strong correlation between cars per person and miles driven per person, suggesting that a car owned is a car driven. It is perhaps unserprising that people do not own a lot of cars they don't need, conversly it is impossible to drive a non-esitant car. So lets remove the car ownerhip to get a learer idea of what else matters.
+There is a very strong correlation between cars per person and miles driven per person, suggesting that a car owner is a car driven. It is perhaps unsurprising that people do not own a lot of cars they don't need, conversely it is impossible to drive a non-existent car. So let's remove the car ownership to get a clearer idea of what else matters.
 
 ```{r}
 cars_lm1 = lm(miles_percap ~  T2W_Car. + NoCarsHH + Unemployed. + dense_2011, 
@@ -348,7 +377,7 @@ plot(predict(cars_lm1),all$miles_percap,
 abline(a=0,b=1, col = "red")
 ```
 
-Still a reasonalby good fit (R^2 of 0.79), but there is some clear non-linerality to this relationship.
+Still a reasonably good fit (R^2 of 0.79), but there is some clear non-linerality to this relationship.
 
 ```{r}
 pairs(all[all$miles_percap < 30000,
@@ -396,4 +425,4 @@ plot(predict(cars_lm4),all$miles_percap,
 abline(a=0,b=1, col = "red")
 ```
 
-Mutch better but still seeing an S-bend to the data?
+Much better but still seeing an S-bend to the data?
