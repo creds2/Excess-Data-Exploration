@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CREDS Mobility Theme</title>
+
+	<!-- Set Up Leaflet -->
+	<link rel="stylesheet" href="/js/lib/leaflet-1.3.1/leaflet.css"/>
+	<script src="/js/lib/leaflet-1.3.1/leaflet.js"></script>
+	<script type="text/javascript" src="/js/lib/jquery-3.2.1/jquery-3.2.1.min.js"></script>
+	
+	
+	
+	<!-- Set Up WiseMover -->
+	<link rel="stylesheet" href="/css/main.css" />
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+	<link rel="icon" href="/favicon.ico" type="image/x-icon">
+	<link rel="stylesheet" href="/css/help.css"/>
+	<link rel="stylesheet" href="/css/controls.css"/>
+	
+	
+</head>
+
+<body>
+	<header>
+		<div id="logo"><a href="/"><img src="/images/logo.jpg" alt="WiseMover Logo" height=48></a></div>
+		<ul id="menu">
+			<li><a href="#box-about">About</a></li>
+			<li><a href="#box-invest">Invest</a></li>
+		</ul>
+		<h1><a href="/">CREDS Mobility Theme </a></h1>
+	</header>
+
+	<div class="content">
+	
+		<div id="slideout">
+			<img src="/images/controls.jpg" alt="Controls" />
+			<div id="slideout_inner">
+					<form id = "fieldform">
+					<p>Variable
+					<select name="field">
+						<option value="pP1900">% Built pre 1900</option>
+						<option value="p190018">% Built 1900 - 1918</option>
+						<option value="p191929">% Built 1919 - 1929</option>
+						<option value="p193039">% Built 1930 - 1939</option>
+						<option value="p194554">% Built 1945 - 1954</option>
+						<option value="p195564">% Built 1955 - 1964</option>
+						<option value="p196572">% Built 1965 - 1972</option>
+						<option value="p197382">% Built 1973 - 1982</option>
+						<option value="p198392">% Built 1983 - 1992</option>
+						<option value="p199399">% Built 1993 - 1999</option>
+						<option value="p200009">% Built 2000 - 2009</option>
+						<option value="p201015">% Built 2010 - 2015</option>
+						<option value="pUNKNOWN">% Built Uknown</option>
+						<option value="Males">% Males</option>
+						<option value="Females">% Femails</option>
+						<option value="LiveHH">LiveHH</option>
+						<option value="LiveComm">LiveComm</option>
+						<option value="Age0to4">% Aged 0 - 4</option>
+						<option value="Age5to7">% Aged 5 - 7</option>
+						<option value="Age8to9">% Aged 8 - 9</option>
+						<option value="Age10to14">% Aged 10 - 14</option>
+						<option value="Age15">% Aged 15</option>
+						<option value="Age16to17">% Aged 16 - 17</option>
+						<option value="Age18to19">% Aged 18 - 19</option>
+						<option value="Age20to24">% Aged 20 - 24</option>
+						<option value="Age25to29">% Aged 25 - 29</option>
+						<option value="Age30to44">% Aged 30 - 34</option>
+						<option value="Age45to59">% Aged 45 - 59</option>
+						<option value="Age60to64">% Aged 60 - 64</option>
+						<option value="Age65to74">% Aged 65 - 74</option>
+						<option value="Age75to84">% Aged 75 - 84</option>
+						<option value="Age85to89">% Aged 85 - 89</option>
+						<option value="Age90plus">% Aged 90 +</option>
+						<option value="Unshared">Unshared</option>
+						<option value="HHwithRes">HHwithRes</option>
+						<option value="HHnoRes">HHnoRes</option>
+						<option value="WholeHouseDetached">% Detached Houses</option>
+						<option value="WholeHouseSemi">% Semi-Detached Houses</option>
+						<option value="WholeHouseTerraced">% Terraced Houses</option>
+						<option value="FlatPurposeBuilt">% Purpose Built Flats</option>
+						<option value="FlatConverted">% Converted Flats</option>
+						<option value="FlatCommercial">% Commercial Flats</option>
+						<option value="Caravan">% Caravans</option>
+						<option value="Outright">% Home owned outrighht</option>
+						<option value="Mortgage">% Home owned with mortgage</option>
+						<option value="Shared">% Shared ownership</option>
+						<option value="SocialLA">% Social Renting - LA</option>
+						<option value="SocialOther">% Social Renting - Other</option>
+						<option value="RentedLandlord">% Renting - Landlord</option>
+						<option value="RentedOther">% Renting - Other</option>
+						<option value="RentFree">% Renting - Rent free</option>
+						<option value="NoCH">% No Central Heating</option>
+						<option value="NoCarsHH">% 0 Car Households</option>
+						<option value="X1CarHH">% 1 Car Households</option>
+						<option value="X2CarHH">% 2 Car Households</option>
+						<option value="X3CarHH">% 3 Car Households</option>
+						<option value="X4plusCarHH">% 4+ Car Households</option>
+						<option value="PartTime">% Working Part Time</option>
+						<option value="FullTime">% Working Full Time</option>
+						<option value="SelfEmp">% Self Employed</option>
+						<option value="Unemployed">% Unemployed</option>
+						<option value="FTStudent">% Fulltime Students</option>
+						<option value="Retired">% Retired</option>
+						<option value="StudentInactive">% Students Inactive</option>
+						<option value="Carer">% Carers</option>
+						<option value="Sick">% Sick</option>
+						<option value="InactiveOther">% Inactive - Other</option>
+						<option value="Unemp16to24">% Unemployed - 16 to 24</option>
+						<option value="Unemp50to74">% Unemployed - 50 - 74</option>
+						<option value="UnempNeverWorked">% Never Worked</option>
+						<option value="UnempLongTerm">% Lonf Term Unemployed</option>
+						<option value="T2WHome">% Work from Home</option>
+						<option value="T2WMetro">% Travel to work by metro</option>
+						<option value="T2WTrain">% Travel to work by train</option>
+						<option value="T2WBus">% Travel to work by bus</option>
+						<option value="T2WTaxi">% Travel to work by taxi</option>
+						<option value="T2WMbike">% Travel to work by motorbike</option>
+						<option value="T2WCar">% Travel to work by car</option>
+						<option value="T2WPassenger">% Travel to work by car passenger</option>
+						<option value="T2WCycle">% Travel to work by bicycle</option>
+						<option value="T2WFoot">% Travel to work by walk</option>
+						<option value="T2WOther">% Travel to work by other</option>
+						<option value="T2WNoEmp">% Travel to work no employer</option>
+						<option value="SocGradeAB">% Social Grade AB</option>
+						<option value="SocGradeC1">% Social Grade C1</option>
+						<option value="SocGradeC2">% Social Grade C2</option>
+						<option value="SocGradeDE">% Social Grade DE</option>
+						<option value="pHeatingNone">% No heating</option>
+						<option value="pHeatingGas">% Heating Gas</option>
+						<option value="pHeatingElectric">% Heating Electric</option>
+						<option value="pHeatingOther">% Heating Other</option>
+						
+					 </select></p>
+					 </form>
+					 <p>All values are percentages from low (dark blue) to high (dark red)</p>
+
+			</div>
+		</div>
+		
+		<div class="middle">
+			<div id = "map" style="height:100%; z-index:1;"></div>
+		</div>
+		<div class="right">
+			<p> This interactive map shows CREDs research data.
+		</div>
+	</div>
+
+	<div class="footer">
+		<p>WiseMover Coptyright 2018</p>
+	</div>
+	
+	<!-- Help Boxes -->
+	<div id="box-about" class="modalDialog">
+		<div>
+			<a href="#close" title="Close" class="close">X</a>
+			<h2>About WiseMover</h2>
+			<p>WiseMover is a new service to help you find the best place to live</p>
+			<p>We are currently developing the website so please check back soon.</p>
+		</div>
+	</div>
+	
+	<div id="box-invest" class="modalDialog">
+		<div>
+			<a href="#close" title="Close" class="close">X</a>
+			<h2>Invest</h2>
+			<p>If you are intrested in investing please visit <a href="https://www.f6s.com/wisemove">F6S</a> </p>
+		</div>
+	</div>
+	
+	<div id="box-crime" class="modalDialog">
+		<div>
+			<a href="#close" title="Close" class="close">X</a>
+			<h2>Crime</h2>
+			<p>Crime help goies here</p>
+		</div>
+	</div>
+
+	<script src="/js/map_creds.js"></script>
+	
+	
+	
+</body>
+
+</html>
