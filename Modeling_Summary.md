@@ -6,21 +6,33 @@ Malcolm Morgan
 Setup
 -----
 
+bringing in the basic settings we need for R.
+
 Input data
 ----------
 
-First load the data, some is England and Wales only so we will start with just there.
+First load the data, some is in England and Wales only so we will start with just there. The datasets in use are:
 
-We will subets the data and join togther
+1.  LSOA boundaries
+2.  Annual Gas & Electricity domestic usage for LSOA
+3.  2011 MOT data for miles driven by car (also have vans but not using)
+4.  Building age (based on counts of bands but estimating mean age)
+5.  Basic census demographics and building types (e.g. semi-detached)
+6.  Heating types from census
+7.  EPC average score (aggregated up from OA)
+8.  Population counts and population density
+9.  Number of rooms/bedrooms from census
+
+We will subsets the data and join together into a single master table. When possible converting values to percentages to aid comparison and prevent model distortions.
 
 Examining Correlations
 ----------------------
 
-Let see which variaibles are correlated with energy use:
+Before getting into the detail lets Let see which variables are correlated with energy use. This gives an overall idea of what matters.
 
 ### Gas
 
-A table of the top correlations
+A table of the top correlations, showing persons R and P-values. Correlating with 2011 gas consumption as most data (e.g. census if from that year)
 
     ##                                  R  P
     ## SocGrade_DE.            -0.5639508  0
@@ -45,20 +57,22 @@ A table of the top correlations
     ## MeanDomGas_17_kWh        0.9806321  0
     ## MeanDomGas_11_kWh        1.0000000 NA
 
-The strongest correlation is with the number of rooms. This is unsurprising as bigger houses require more heating. The next strongest correlation is with the number of bedrooms, but as the number of bedrooms is closely realted to the number of rooms this is not very informative.
+The strongest correlation is with the number of rooms. This is unsurprising as bigger houses require more heating. The next strongest correlation is with the number of bedrooms, but as the number of bedrooms is closely related to the number of rooms this is not very informative.
+
+Other strong correlations are % of AB social grade people being strongly positive and % DE Social grade people being strongly negative. Also note that working from home and being self-employed is predictive of higher gas usage, perhaps showing households that are heated all day?
 
 We could try a model of the top 5 variaibles
 
 ``` r
-# gas_lm0 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_DE. + mean_bedrooms + SocGrade_AB. + median_household_income, data=all, na.action = na.exclude)
+#gas_lm0 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_DE. + mean_bedrooms + SocGrade_AB. + median_household_income, data=all, na.action = na.exclude)
 # summary(gas_lm0)
 ```
 
-It would be more intresting to remove the affect of the number of rooms and see what is strongly correlated with the residuals.
+It would be more interesting to remove the effect of the number of rooms and see what is strongly correlated with the residuals.
 
 ![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
-Lets look at what best predicts the residuals after accounting for the number of rooms.
+Let's look at what best predicts the residuals after accounting for the number of rooms.
 
     ## 
     ## Call:
@@ -105,11 +119,13 @@ Lets look at what best predicts the residuals after accounting for the number of
     ## MeanDomGas_11_kWh        0.6736821  0
     ## gas_lm1_res              1.0000000 NA
 
-Some of these are more realted to car use (e.g. T2W\_Car is the % of people travelling to work by car). Of the ones about houses SocialGrade\_C2 is the strongest correlation.
+Some of these are more related to car use (e.g. T2W\_Car is the % of people travelling to work by car). Of the ones about houses, SocialGrade\_C2 is the strongest correlation. This is interesting as it seems that by accounting for the number of rooms we have removed some but not all the of the social grade effect. Could C2 class people be slightly different from the other social classes?
+
+Plots of the relationship between the proportion of people with class C2 and gas consumption. And the correlation between residuals for the model and social grade C2.
 
 ![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-9-1.png)![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-9-2.png)
 
-So let try a new model with the two variaibles
+So let try a new model with the two variables. This improved the model from an R squared of 0.54 to 0.63
 
     ## 
     ## Call:
@@ -135,7 +151,7 @@ So let try a new model with the two variaibles
 
 ![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-10-1.png)
 
-We can repete the process
+We can repeat the process, of looking at the residuals.
 
     ## Warning in sqrt(1 - h * h): NaNs produced
 
@@ -157,9 +173,9 @@ We can repete the process
     ## gas_lm1_res         0.8966774  0
     ## gas_lm2_res         1.0000000 NA
 
-Hear some ofther appropiate variaibles such as the EPC rating (Crr\_EE) and buidling age (mean\_house\_age) stand out as we the proortion of self empolyed people.
+Hear some other appropriate variables such as the EPC rating (Crr\_EE) and building age (mean\_house\_age) stand out as we the proportion of self-employed people.
 
-Let try a final model with all these added variaibles.
+Let try a final model with all these added variables.
 
     ## 
     ## Call:
@@ -188,12 +204,16 @@ Let try a final model with all these added variaibles.
 
 ![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-12-1.png)
 
-So we have a model that can explain 68.9% of the variation in gas usage at LSOA level based on just 5 variables.
+So we have a model that can explain 68.9% of the variation in gas usage at LSOA level based on just 5 variables. Gas is tricky due to the off-gas grid areas which we have not properly captured, although the type of heating has not been very predictive.
+
+### Kitchen Sink Approach
+
+Let's throw the kitchen sink at the data that is even slightly correlated and see what is the best model we can get.
 
 Electricity
 -----------
 
-Lets Do the same for electricity
+Let's do the same for electricity.
 
 ``` r
 all_matrix <- all[,2:ncol(all)]
@@ -236,7 +256,7 @@ correlations_elec
     ## MeanDomElec_17_kWh       0.9618235  0
     ## MeanDomElec_11_kWh       1.0000000 NA
 
-Here we se the top factors are (excluding car related ones) Number of rooms, Self Employed, and % gas heating, detached houses , and % other heating.
+Here we see the top factors are (excluding car related ones) Number of rooms, Self Employed, and % gas heating, detached houses, and % other heating. Again income matters but is not the top variable. That gas heating reduces electricity demand is clear, but why does electric heating not increase demand? A simple model based on a few top variables gets an R squared of 0.74.
 
 ``` r
 elec_lm0 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + Whole_House_Detached. + pHeating_Other, 
@@ -269,7 +289,7 @@ summary(elec_lm0)
     ## Multiple R-squared:  0.7423, Adjusted R-squared:  0.7423 
     ## F-statistic: 1.95e+04 on 5 and 33836 DF,  p-value: < 2.2e-16
 
-What about the residuals?
+What about the residuals after accounting for the number of rooms?
 
 ``` r
 elec_lm1 = lm(MeanDomElec_11_kWh ~ mean_rooms, data=all, na.action = na.exclude)
@@ -296,31 +316,9 @@ summary(elec_lm1)
     ## Multiple R-squared:  0.4509, Adjusted R-squared:  0.4509 
     ## F-statistic: 2.779e+04 on 1 and 33840 DF,  p-value: < 2.2e-16
 
-``` r
-plot(predict(elec_lm1),all$MeanDomElec_11_kWh,
-     xlab="predicted",ylab="actual")
-abline(a=0,b=1, col = "red")
-```
-
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-15-1.png)
-
-``` r
-all$elec_lm1_res = residuals(elec_lm1, na.action = na.exclude)
-
-all_matrix <- all[,2:ncol(all)]
-all_matrix <- data.matrix(all_matrix)
-
-correlations <- rcorr(x = all_matrix, type="pearson")
-```
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-17-1.png)
 
     ## Warning in sqrt(1 - h * h): NaNs produced
-
-``` r
-correlations_elec_res <- data.frame(R = correlations$r[,"elec_lm1_res"], P = correlations$P[,"elec_lm1_res"])
-correlations_elec_res <- correlations_elec_res[order(correlations_elec_res$R),]
-correlations_elec_res <- correlations_elec_res[correlations_elec_res$R > 0.3 | correlations_elec_res$R < -0.3,]
-correlations_elec_res
-```
 
     ##                             R  P
     ## pHeating_Gas       -0.6462009  0
@@ -343,7 +341,9 @@ correlations_elec_res
     ## MeanDomElec_11_kWh  0.7410170  0
     ## elec_lm1_res        1.0000000 NA
 
-The top residuals are % of differnt heating types, self empoyed and working from home.
+Here the number of rooms is much less predictive than for gas. This suggests that other behaviours matter more than house size. Also, note there is a lot less variation between LSOAs in terms of their electricity usage.
+
+The top residuals are % of different heating types, self-employed and working from home.
 
 ``` r
 elec_lm2 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + pHeating_Electric + pHeating_Other + T2W_Home., 
@@ -378,26 +378,14 @@ summary(elec_lm2)
     ## Multiple R-squared:  0.7524, Adjusted R-squared:  0.7524 
     ## F-statistic: 1.714e+04 on 6 and 33835 DF,  p-value: < 2.2e-16
 
+We can get an R squared of 0.75 which is probably pushing the upper limit of what is possible, considering the quality of the data and that there will be some inherent randomness.
+
 Driving
 -------
 
-Finally lets look at driving
-
-``` r
-all_matrix <- all[,2:ncol(all)]
-all_matrix <- data.matrix(all_matrix)
-
-correlations <- rcorr(x = all_matrix, type="pearson")
-```
+Finally, let's look at driving. The top correlations are.
 
     ## Warning in sqrt(1 - h * h): NaNs produced
-
-``` r
-correlations_cars <- data.frame(R = correlations$r[,"miles_percap"], P = correlations$P[,"miles_percap"])
-correlations_cars <- correlations_cars[order(correlations_cars$R),]
-correlations_cars <- correlations_cars[correlations_cars$R > 0.5 | correlations_cars$R < -0.5,]
-correlations_cars
-```
 
     ##                                R  P
     ## NoCarsHH              -0.8863509  0
@@ -442,7 +430,7 @@ correlations_cars
     ## cars_percap            0.9547231  0
     ## miles_percap           1.0000000 NA
 
-The top correlataions are quite broad, but inclicde household without cars, unemployment, and population density, car ownership per capita, number of rooms and bedrooms, and % travel to work by car.
+The top correlations are quite broad but include household without cars, unemployment, and population density, car ownership per capita, number of rooms and bedrooms, and % travel to work by car.
 
 ``` r
 cars_lm0 = lm(miles_percap ~ cars_percap + T2W_Car. + NoCarsHH + Unemployed. + dense_2011, 
@@ -480,7 +468,7 @@ plot(all$cars_percap, all$miles_percap,
      xlim = c(0,2), ylim = c(0,20000))
 ```
 
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-18-1.png)
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-20-1.png)
 
 ``` r
 plot(predict(cars_lm0),all$miles_percap,
@@ -488,9 +476,9 @@ plot(predict(cars_lm0),all$miles_percap,
 abline(a=0,b=1, col = "red")
 ```
 
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-18-2.png)
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-20-2.png)
 
-There is a very strong correlation between cars per person and miles driven per person, suggesting that a car owned is a car driven. It is perhaps unserprising that people do not own a lot of cars they don't need, conversly it is impossible to drive a non-esitant car. So lets remove the car ownerhip to get a learer idea of what else matters.
+There is a very strong correlation between cars per person and miles driven per person, suggesting that a car owner is a car driven. It is perhaps unsurprising that people do not own a lot of cars they don't need, conversely it is impossible to drive a non-existent car. So let's remove the car ownership to get a clearer idea of what else matters.
 
 ``` r
 cars_lm1 = lm(miles_percap ~  T2W_Car. + NoCarsHH + Unemployed. + dense_2011, 
@@ -527,16 +515,16 @@ plot(predict(cars_lm1),all$miles_percap,
 abline(a=0,b=1, col = "red")
 ```
 
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-19-1.png)
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-21-1.png)
 
-Still a reasonalby good fit (R^2 of 0.79), but there is some clear non-linerality to this relationship.
+Still a reasonably good fit (R^2 of 0.79), but there is some clear non-linerality to this relationship.
 
 ``` r
 pairs(all[all$miles_percap < 30000,
           c("miles_percap", "T2W_Car.", "NoCarsHH" , "Unemployed.", "dense_2011")])
 ```
 
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-20-1.png)
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-22-1.png)
 
 It seems that density has a non-linear effect on driving.
 
@@ -546,7 +534,7 @@ plot(all$dense_2011, all$miles_percap,
      ylim = c(0, 20000))
 ```
 
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-21-1.png)
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-23-1.png)
 
 ``` r
 # fit non-linear model
@@ -637,7 +625,7 @@ plot(predict(cars_lm3),all$miles_percap,
 abline(a=0,b=1, col = "red")
 ```
 
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-22-1.png)
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-24-1.png)
 
 It didn't help very much :(
 
@@ -680,6 +668,6 @@ plot(predict(cars_lm4),all$miles_percap,
 abline(a=0,b=1, col = "red")
 ```
 
-![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-23-1.png)
+![](Modeling_Summary_files/figure-markdown_github/unnamed-chunk-25-1.png)
 
-Mutch better but still seeing an S-bend to the data?
+Much better but still seeing an S-bend to the data?
