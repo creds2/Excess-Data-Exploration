@@ -42,6 +42,7 @@ rooms <- readRDS("data-prepared/rooms.Rds")
 ru <- readRDS("data-prepared/ruralurban.Rds")
 access_town <- readRDS("data-prepared/acess_town.Rds")
 access_town <- access_town[,c("LSOA_code","%All15_PT/walk1,3")]
+clasf <- readRDS("data-prepared/area_classification.Rds")
 
 dir.create("temp")
 unzip("../Secure-Data/Excess/XSExpData1.zip", exdir = "temp")
@@ -124,8 +125,9 @@ heating$pHeating_Other <- round((heating$Oil + heating$`Solid fuel` + heating$Ot
 
 heating <- heating[,c("LSOA11","pHeating_None","pHeating_Gas","pHeating_Electric","pHeating_Other")]
 
-
-
+clasf$area_group <- as.factor(paste0(clasf$`Group Code`," ",clasf$`Group Name`))
+clasf$area_supergroup <- as.factor(paste0(clasf$`Supergroup Code`," ",clasf$`Supergroup Name`))
+clasf <- clasf[,c("SOA Code","area_group","area_supergroup")]
 
 
 # Join Togther
@@ -141,14 +143,15 @@ all <- left_join(all, experian, by = c("LSOA11" = "LSOA"))
 all <- left_join(all, rooms, by = c("LSOA11" = "geography.code"))
 all <- left_join(all, ru, by = "LSOA11")
 all <- left_join(all, access_town, by = c("LSOA11" = "LSOA_code"))
+all <- left_join(all, clasf, by = c("LSOA11" = "SOA Code"))
 rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, ru, access_town)
 ```
 
 ## Step 1: Top 30% of Gas, Electricity, or Driving
 
 ```{r, include=FALSE}
-gas_decice <- quantile(all$MeanDomGas_11_kWh, seq(0.1, 0.9, 0.1), na.rm = TRUE)
-elec_decice <- quantile(all$MeanDomElec_11_kWh, seq(0.1, 0.9, 0.1), na.rm = TRUE)
+gas_decice <- quantile(all$MeanDomGas_17_kWh, seq(0.1, 0.9, 0.1), na.rm = TRUE)
+elec_decice <- quantile(all$MeanDomElec_17_kWh, seq(0.1, 0.9, 0.1), na.rm = TRUE)
 drive_decice <- quantile(all$miles_percap, seq(0.1, 0.9, 0.1), na.rm = TRUE)
 epc_decile <- quantile(all$Crr_EE, seq(0.1, 0.9, 0.1), na.rm = TRUE)
 ```
@@ -175,7 +178,8 @@ drive_decice
 No filter areas that are in top 30% for at least one category
 
 ```{r, echo=FALSE}
-all_sub <- all[all$MeanDomElec_11_kWh > elec_decice[7] | all$MeanDomGas_11_kWh > gas_decice[7] | all$miles_percap > drive_decice[7], ]
+all$MeanDomGas_17_kWh[is.na(all$MeanDomGas_17_kWh)] <- 0
+all_sub <- all[all$MeanDomElec_17_kWh > elec_decice[7] | all$MeanDomGas_17_kWh > gas_decice[7] | all$miles_percap > drive_decice[7], ]
 ```
 
 Just under 50% of LSOAs are in the top 30% for at least one variable.
@@ -202,10 +206,11 @@ Filter out rural areas, now down to 33% of LSOAs
 Using the DFT accessibility statistics to filter out areas where less than 50% of people are within 15 minutes of the town centre by walking or public transport.
 
 ```{r, echo=FALSE}
+all_sub <- all_sub[!is.na(all_sub$`%All15_PT/walk1,3`),]
 all_sub <- all_sub[all_sub$`%All15_PT/walk1,3` > 50, ]
 ```
 
-Now down to 23 % of LSOAs
+Now down to 20 % of LSOAs
 
 ## Step 4: Building Energy Efficiency
 
@@ -219,7 +224,7 @@ epc_decile
 all_sub <- all_sub[all_sub$Crr_EE > epc_decile[5] , ]
 ```
 
-Down to 9.5% of LSOAs, so let's look at where we are.
+Down to 7% of LSOAs, so let's look at where we are.
 
 ## Summary of areas.
 A quick map, we have quite a good geographic spread.
@@ -228,7 +233,7 @@ See an interactive map at  https://www.wisemover.co.uk/creds/
 all_sub <- left_join(all_sub, bounds, by = c("LSOA11"))
 all_sub <- st_as_sf(all_sub)
 tm_shape(all_sub) +
-  tm_polygons(col = "MeanDomElec_11_kWh",
+  tm_polygons(col = "area_supergroup",
               popup.vars = c("MeanDomElec_11_kWh", 
                              "MeanDomGas_11_kWh", 
                              "cars_percap", 
@@ -239,7 +244,65 @@ tm_shape(all_sub) +
                              "pHeating_Other",
                              "median_household_income",
                              "mean_household.size",
-                             "mean_rooms" 
+                             "mean_rooms",
+                             "area_supergroup",
+                             "area_group"
+                             ))
+
+
+
+```
+
+## Narrow Down
+
+7% of LSOAs is still a lot so rebuild with tighter critria by requiering areas to be higher energy useage. E.g. to be in top 20% energy use for one of the three categories drops to 5% of LSOA, top 10% drops to 2% of LSOAs.
+
+Or we could look for areas that a high in all categories. Only 556 LSOAs are in the top 30% for all 3 energy types.
+
+```{r, echo=FALSE}
+tight  <- all_sub[all_sub$MeanDomElec_11_kWh > elec_decice[7] & all_sub$MeanDomGas_11_kWh > gas_decice[7] & all_sub$miles_percap > drive_decice[7], ]
+
+tm_shape(tight) +
+  tm_polygons(col = "area_supergroup",
+              popup.vars = c("MeanDomElec_11_kWh", 
+                             "MeanDomGas_11_kWh", 
+                             "cars_percap", 
+                             "miles_percap",
+                             "T2W_Car.",
+                             "pHeating_Gas",
+                             "pHeating_Electric",
+                             "pHeating_Other",
+                             "median_household_income",
+                             "mean_household.size",
+                             "mean_rooms",
+                             "area_supergroup",
+                             "area_group"
+                             ))
+
+
+
+```
+
+Finally We can go really tight. 33 LSOAs are in the top 10% for all three categories
+
+```{r, echo=FALSE}
+tight2  <- all_sub[all_sub$MeanDomElec_11_kWh > elec_decice[9] & all_sub$MeanDomGas_11_kWh > gas_decice[9] & all_sub$miles_percap > drive_decice[9], ]
+
+tm_shape(tight2) +
+  tm_polygons(col = "area_supergroup",
+              popup.vars = c("MeanDomElec_11_kWh", 
+                             "MeanDomGas_11_kWh", 
+                             "cars_percap", 
+                             "miles_percap",
+                             "T2W_Car.",
+                             "pHeating_Gas",
+                             "pHeating_Electric",
+                             "pHeating_Other",
+                             "median_household_income",
+                             "mean_household.size",
+                             "mean_rooms",
+                             "area_supergroup",
+                             "area_group"
                              ))
 
 
