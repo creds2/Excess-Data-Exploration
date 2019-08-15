@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Setup
 
 ```{r, include=FALSE}
-secure_path <- "E:/OneDrive - University of Leeds/CREDS Data/Tim Share"
+secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/Tim Share"
 
 ```
 
@@ -305,6 +305,13 @@ tm_shape(tight2) +
                              "area_group"
                              ))
 
+# Export Data
+nms <- read.csv("data-input/Energy Consumption/LSOA_domestic_gas_2017.csv.csv", stringsAsFactors = FALSE)
+nms <- nms[,5:6]
+names(nms) <- c("LSOA_Name","LSOA11")
+nms <- nms[2:(nrow(nms)-1),]
 
-
+tight2 <- left_join(tight2, nms, by = c("LSOA11"))
+tight2 <- st_drop_geometry(tight2)
+write.csv(tight2,"data/interview_areas.csv")
 ```

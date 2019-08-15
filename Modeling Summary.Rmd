@@ -267,7 +267,10 @@ So we have a model that can explain 68.9% of the variation in gas usage at LSOA 
 Let's throw the kitchen sink at the data that is even slightly correlated and see what is the best model we can get.
 
 ```{r, echo=FALSE, eval=FALSE}
+rm(all_matrix, bounds, correlations, correlations_gas_res, gas_lm1, gas_lm2, gas_lm3, tim)
+gc()
 all_gas <- all[,rownames(correlations_gas)]
+all_gas <- dplyr::sample_n(all_gas, 5000)
 gas_lm4 = lm(MeanDomGas_11_kWh ~ (.)^2, data=all_gas, na.action = na.exclude)
 summary(gas_lm4)
 ```
