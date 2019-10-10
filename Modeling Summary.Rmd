@@ -13,9 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 bringing in the basic settings we need for R.
 
-```{r, include=FALSE}
-#secure_path <- "E:/OneDrive - University of Leeds/CREDS Data/Tim Share"
-secure_path <- "D:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/Tim Share"
+```{r p1, include=FALSE}
+secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/Tim Share"
+#secure_path <- "D:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/Tim Share"
 ```
 
 ## Input data
@@ -31,8 +31,9 @@ First load the data, some is in England and Wales only so we will start with jus
 1. EPC average score (aggregated up from OA)
 1. Population counts and population density
 1. Number of rooms/bedrooms from census
+1. Average emissions factors for driving
 
-```{r, include=FALSE}
+```{r p2, include=FALSE}
 library(sf)
 library(dplyr)
 library(Hmisc)
@@ -62,12 +63,16 @@ names(experian) <- experian[4,]
 experian <- experian[5:nrow(experian),]
 experian <- experian[,c("GeographyValue","Median_(H) Household Income Value")]
 names(experian) <- c("LSOA","median_household_income")
-
+emissions <- readRDS("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions.Rds")
+latitude <- st_centroid(bounds)
+latitude <- cbind(st_drop_geometry(latitude), st_coordinates(latitude))
+latitude <- latitude[,c("LSOA11","Y")]
+names(latitude) <- c("LSOA11","northing")
 ```
 
 We will subsets the data and join together into a single master table. When possible converting values to percentages to aid comparison and prevent model distortions.
 
-```{r, include=FALSE}
+```{r  p3, include=FALSE}
 bounds <- bounds[bounds$LSOA11 %in% census$CODE,]
 elec <- elec[elec$LSOA11 %in% bounds$LSOA11, c("LSOA11","DomMet_11",
                                         "DomMet_17","MeanDomElec_11_kWh",
@@ -141,7 +146,25 @@ all <- left_join(all, population, by = c("LSOA11" = "LSOA11"))
 all <- left_join(all, density, by = c("LSOA11" = "LSOA11"))
 all <- left_join(all, experian, by = c("LSOA11" = "LSOA"))
 all <- left_join(all, rooms, by = c("LSOA11" = "geography.code"))
-rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms)
+all <- left_join(all, emissions, by = c("LSOA11" = "LSOA"))
+all <- left_join(all, latitude, by = c("LSOA11" = "LSOA11"))
+rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, emissions,latitude)
+
+all$median_household_income <- as.numeric(all$median_household_income)
+# Get average car emissions, by weighting miles by emissions
+
+all$petrol_emissions <- all$cars_miles * 1.60934 * (1 - all$pmiles_diesel) * all$petrol_co2 /1000 
+all$diesel_emissions <- all$cars_miles * 1.60934 * (all$pmiles_diesel) * all$diesel_co2 / 1000
+# Convert from kgco2 to litres of fuel
+all$petrol_litres <- all$petrol_emissions / 2.18943
+all$diesel_litres <- all$diesel_emissions / 2.58935
+# Convert to kWh
+all$petrol_kwh <- all$petrol_litres * 9.42
+all$diesel_kwh <- all$petrol_litres * 10.89
+# Total
+all$driving_kwh <- all$petrol_kwh + all$diesel_kwh
+all$driving_kwh_percap <- all$driving_kwh / all$pop2011
+
 ```
 
 
@@ -151,44 +174,73 @@ Before getting into the detail lets Let see which variables are correlated with 
 
 ### Gas
 
-```{r, include=FALSE}
+```{r p4, include=FALSE}
 all_matrix <- all[,2:ncol(all)]
 all_matrix <- data.matrix(all_matrix)
 
 correlations <- rcorr(x = all_matrix, type="pearson")
 correlations_gas <- data.frame(R = correlations$r[,"MeanDomGas_11_kWh"], P = correlations$P[,"MeanDomGas_11_kWh"])
 correlations_gas <- correlations_gas[order(correlations_gas$R),]
-correlations_gas <- correlations_gas[correlations_gas$R > 0.5 | correlations_gas$R < -0.5,]
+correlations_gas <- correlations_gas[correlations_gas$R > 0.3 | correlations_gas$R < -0.3,]
 ```
 
 A table of the top correlations, showing persons R and P-values. Correlating with 2011 gas consumption as most data (e.g. census if from that year)
 
-```{r, echo=FALSE}
+```{r  p5, echo=FALSE}
 correlations_gas
 ```
+
+Some expected results
+
+```{r  p5a, echo=FALSE}
+all$northing_km <- all$northing / 1000
+
+ggplot(all, aes(northing_km, MeanDomGas_11_kWh)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Kilometres North") +
+  ylab("Mean annual gas consumption kWh (2011)") +
+  geom_text(x = 400, y = 40000, label = "y = 241 + 0.002496x,  r2 = 0.004", parse = FALSE) +
+  ggsave("plots/northing_gas_consumption.png")
+```
+
+
 
 The strongest correlation is with the number of rooms. This is unsurprising as bigger houses require more heating. The next strongest correlation is with the number of bedrooms, but as the number of bedrooms is closely related to the number of rooms this is not very informative.
 
 Other strong correlations are % of AB social grade people being strongly positive and % DE Social grade people being strongly negative. Also note that working from home and being self-employed is predictive of higher gas usage, perhaps showing households that are heated all day?
 
 We could try a model of the top 5 variaibles
-```{r}
+```{r p6}
 #gas_lm0 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_DE. + mean_bedrooms + SocGrade_AB. + median_household_income, data=all, na.action = na.exclude)
 # summary(gas_lm0)
+
+gas_lmoa = lm(all$TotDomGas_11_kWh ~ all$mean_rooms)
+gas_lmob = lm(all$TotDomGas_11_kWh ~ poly(all$mean_rooms, 2))
+summary(gas_lmoa)
+summary(gas_lmob)
 ```
 
 It would be more interesting to remove the effect of the number of rooms and see what is strongly correlated with the residuals.
 
-```{r, echo=FALSE}
+```{r  p7, echo=FALSE}
 plot(all$mean_rooms, all$MeanDomGas_11_kWh, 
      ylab = "Mean Domestic Gas consumption 2011 (kWh)",
      xlab = "Mean number of rooms per house")
+
+ggplot(all, aes(mean_rooms, MeanDomGas_11_kWh)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Mean number of rooms per house") +
+  ylab("Mean Domestic Gas consumption 2011 (kWh)") +
+  ggsave("plots/rooms_gas_consumption.png")
 ```
 
 Let's look at what best predicts the residuals after accounting for the number of rooms.
 
-```{r, echo=FALSE}
+```{r  p8, echo=FALSE}
 gas_lm1 = lm(MeanDomGas_11_kWh ~ mean_rooms, data=all, na.action = na.exclude)
+#gas_lm1 = lm(TotDomGas_11_kWh ~ poly(mean_rooms, 2), data=all, na.action = na.exclude)
 summary(gas_lm1)
 plot(predict(gas_lm1),all$MeanDomGas_11_kWh,
      xlab="predicted",ylab="actual")
@@ -210,7 +262,7 @@ Some of these are more related to car use (e.g. T2W_Car is the % of people trave
 
 Plots of the relationship between the proportion of people with class C2 and gas consumption. And the correlation between residuals for the model and social grade C2.
 
-```{r, echo=FALSE}
+```{r  p9, echo=FALSE}
 plot(all$SocGrade_C2., all$MeanDomGas_11_kWh, 
      ylab = "Mean Domestic Gas consumption 2011 (kWh)",
      xlab = "Social Grade C2")
@@ -222,7 +274,7 @@ plot(all$gas_lm1_res, all$SocGrade_C2.,
 
 So let try a new model with the two variables. This improved the model from an  R squared of 0.54 to 0.63
 
-```{r, echo=FALSE}
+```{r  p10, echo=FALSE}
 gas_lm2 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_C2., data=all, na.action = na.exclude)
 summary(gas_lm2)
 
@@ -234,7 +286,7 @@ abline(a=0,b=1, col = "red")
 
 We can repeat the process, of looking at the residuals.
 
-```{r, echo=FALSE}
+```{r p11, echo=FALSE}
 all$gas_lm2_res = residuals(gas_lm2, na.action = na.exclude)
 
 all_matrix <- all[,2:ncol(all)]
@@ -251,7 +303,7 @@ Hear some other appropriate variables such as the EPC rating (Crr_EE) and buildi
 
 Let try a final model with all these added variables.
 
-```{r, echo=FALSE}
+```{r p12, echo=FALSE}
 gas_lm3 = lm(MeanDomGas_11_kWh ~ mean_rooms + SocGrade_C2. + Crr_EE + Self.Emp. + mean_house_age, data=all, na.action = na.exclude)
 summary(gas_lm3)
 
@@ -266,13 +318,23 @@ So we have a model that can explain 68.9% of the variation in gas usage at LSOA 
 
 Let's throw the kitchen sink at the data that is even slightly correlated and see what is the best model we can get.
 
-```{r, echo=FALSE, eval=FALSE}
-rm(all_matrix, bounds, correlations, correlations_gas_res, gas_lm1, gas_lm2, gas_lm3, tim)
-gc()
+```{r p13, echo=FALSE, eval=FALSE}
 all_gas <- all[,rownames(correlations_gas)]
-all_gas <- dplyr::sample_n(all_gas, 5000)
-gas_lm4 = lm(MeanDomGas_11_kWh ~ (.)^2, data=all_gas, na.action = na.exclude)
-summary(gas_lm4)
+all_gas <- all_gas[, !names(all_gas) %in% c("MeanDomElec_17_kWh","MeanDomElec_11_kWh","MeanDomGas_17_kWh",
+                                            "TotDomGas_17_kWh","TotDomGas_11_kWh","electric diesel_n")]
+
+all_gas_sub <- dplyr::sample_n(all_gas, 10000)
+
+
+
+all_gas_sub <- as.data.frame(lapply(all_gas_sub, scale))
+gas_lm4 = lm(MeanDomGas_11_kWh ~ (.)^2, data=all_gas_sub, na.action = na.exclude)
+coeff <- summary(gas_lm4)$coefficients
+coeff <- as.data.frame(coeff)
+coeff <- coeff[coeff$`Pr(>|t|)` > 0.75,]
+
+#plot(all$TotDomElec_11_kWh, all$diesel_co2)
+
 ```
 
 
@@ -280,7 +342,7 @@ summary(gas_lm4)
 
 Let's do the same for electricity.
 
-```{r}
+```{r p14}
 all_matrix <- all[,2:ncol(all)]
 all_matrix <- data.matrix(all_matrix)
 
@@ -293,7 +355,7 @@ correlations_elec
 
 Here we see the top factors are (excluding car related ones) Number of rooms, Self Employed, and % gas heating, detached houses, and % other heating. Again income matters but is not the top variable. That gas heating reduces electricity demand is clear, but why does electric heating not increase demand? A simple model based on a few top variables gets an R squared of 0.74.
 
-```{r}
+```{r p15}
 elec_lm0 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + Whole_House_Detached. + pHeating_Other, 
               data=all, na.action = na.exclude)
 summary(elec_lm0)
@@ -301,13 +363,13 @@ summary(elec_lm0)
 
 What about the residuals after accounting for the number of rooms?
 
-```{r}
+```{r  p16}
 elec_lm1 = lm(MeanDomElec_11_kWh ~ mean_rooms, data=all, na.action = na.exclude)
 summary(elec_lm1)
 
 ```
 
-```{r, echo=FALSE}
+```{r p17, echo=FALSE}
 plot(predict(elec_lm1),all$MeanDomElec_11_kWh,
      xlab="predicted",ylab="actual")
 abline(a=0,b=1, col = "red")
@@ -328,7 +390,7 @@ Here the number of rooms is much less predictive than for gas. This suggests tha
 
 The top residuals are % of different heating types, self-employed and working from home.
 
-```{r}
+```{r p18}
 elec_lm2 = lm(MeanDomElec_11_kWh ~ mean_rooms + Self.Emp. + pHeating_Gas + pHeating_Electric + pHeating_Other + T2W_Home., 
               data=all, na.action = na.exclude)
 summary(elec_lm2)
@@ -340,7 +402,7 @@ We can get an R squared of 0.75 which is probably pushing the upper limit of wha
 
 Finally, let's look at driving. The top correlations are.
 
-```{r, echo=FALSE}
+```{r p19, echo=FALSE}
 all_matrix <- all[,2:ncol(all)]
 all_matrix <- data.matrix(all_matrix)
 
@@ -353,7 +415,7 @@ correlations_cars
 
 The top correlations are quite broad but include household without cars, unemployment, and population density, car ownership per capita, number of rooms and bedrooms, and % travel to work by car.
 
-```{r}
+```{r p20}
 cars_lm0 = lm(miles_percap ~ cars_percap + T2W_Car. + NoCarsHH + Unemployed. + dense_2011, 
               data=all, na.action = na.exclude)
 summary(cars_lm0)
@@ -370,7 +432,7 @@ abline(a=0,b=1, col = "red")
 
 There is a very strong correlation between cars per person and miles driven per person, suggesting that a car owner is a car driven. It is perhaps unsurprising that people do not own a lot of cars they don't need, conversely it is impossible to drive a non-existent car. So let's remove the car ownership to get a clearer idea of what else matters.
 
-```{r}
+```{r p21}
 cars_lm1 = lm(miles_percap ~  T2W_Car. + NoCarsHH + Unemployed. + dense_2011, 
               data=all, na.action = na.exclude)
 summary(cars_lm1)
@@ -382,14 +444,14 @@ abline(a=0,b=1, col = "red")
 
 Still a reasonably good fit (R^2 of 0.79), but there is some clear non-linerality to this relationship.
 
-```{r}
+```{r  p22}
 pairs(all[all$miles_percap < 30000,
           c("miles_percap", "T2W_Car.", "NoCarsHH" , "Unemployed.", "dense_2011")])
 ```
 
 It seems that density has a non-linear effect on driving.
 
-```{r}
+```{r  p23}
 plot(all$dense_2011, all$miles_percap,
      xlab="People per km ^2",ylab="Miles per person",
      ylim = c(0, 20000))
@@ -404,7 +466,7 @@ summary(cars_lm2c)
 
 If we put that back into the original model.
 
-```{r}
+```{r  p24}
 cars_lm3 = lm(miles_percap ~  T2W_Car. + NoCarsHH + Unemployed. +                  exp(-7.25e-5 * dense_2011), 
               data=all, na.action = na.exclude)
 summary(cars_lm3)
@@ -418,7 +480,7 @@ It didn't help very much :(
 
 So try a polynomial on density and No car households
 
-```{r}
+```{r  p25}
 cars_lm4 = lm(miles_percap ~  T2W_Car. + poly(NoCarsHH, 2) + Unemployed. + poly(dense_2011, 2), 
               data=all, na.action = na.exclude)
 summary(cars_lm4)
@@ -429,3 +491,37 @@ abline(a=0,b=1, col = "red")
 ```
 
 Much better but still seeing an S-bend to the data?
+
+## Driving Energy consumption
+
+How about looking at energy consumption rather than miles, does that make a difference.
+
+```{r  p26, echo=FALSE}
+all_matrix <- all[,2:ncol(all)]
+all_matrix <- data.matrix(all_matrix)
+
+correlations <- rcorr(x = all_matrix, type="pearson")
+correlations_carskwh <- data.frame(R = correlations$r[,"driving_kwh_percap"], P = correlations$P[,"driving_kwh_percap"])
+correlations_carskwh <- correlations_carskwh[order(correlations_carskwh$R),]
+correlations_carskwh <- correlations_carskwh[correlations_carskwh$R > 0.5 | correlations_carskwh$R < -0.5,]
+correlations_carskwh
+```
+
+Similar pattern to miles per capita, probably because variation in miles is much greater than variation in fuel efficnency. Travel to Work by Bus comes out as 
+
+
+```{r  p27}
+cars_lm5 = lm(driving_kwh_percap ~ miles_percap +  cars_percap + T2W_Car. + NoCarsHH + Unemployed. + dense_2011, 
+              data=all, na.action = na.exclude)
+summary(cars_lm5)
+
+plot(all$miles_percap, all$driving_kwh_percap,
+     xlab="Miles per person",ylab="kWh per person",
+     xlim = c(0,20000), ylim = c(0, 12000)
+     )
+
+
+plot(predict(cars_lm5),all$driving_kwh_percap,
+     xlab="predicted",ylab="actual", xlim = c(0,12000), ylim = c(0,12000))
+abline(a=0,b=1, col = "red")
+```
