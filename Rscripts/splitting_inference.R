@@ -184,6 +184,7 @@ foo <- res %>%
 foo <- t(foo)
 plot(foo)
 
+summary(foo > 990)
 bar <- foo[foo > 990,]
 
 sub <- all_noNA[,names(all_noNA) %in% c("MeanDomGas_11_kWh",names(bar))]
