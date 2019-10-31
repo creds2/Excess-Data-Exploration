@@ -3,8 +3,32 @@ library(dplyr)
 library(ggplot2)
 
 # generate data -----------------------------------------------
-all = readRDS("E:/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_all.Rds")
-#all = readRDS("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_all.Rds")
+#all = readRDS("E:/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_all.Rds")
+all = readRDS("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_all.Rds")
+
+rep_sats <- function(i, dat, Y){
+  indexes <- sample(1:nrow(dat), size = nrow(dat) / 2)
+  
+  model_tree = tree::tree(as.formula(paste0(Y," ~ .")), 
+                          data = dat[indexes,], 
+                          na.action = na.exclude,
+                          mincut = 5,
+                          mindev = 0.005)
+  
+  plot(model_tree, type = "proportional")
+  text(model_tree)
+  
+  signif_variables <- as.character(summary(model_tree)$used)
+  signif_variables <- signif_variables[signif_variables != "(Intercept)"]
+  
+  estimate_coefs_formula <- paste0(Y," ~ ", paste(signif_variables, collapse = " + "))
+  estimate_coefs <- lm(as.formula(estimate_coefs_formula), data = dat, subset = -indexes)
+  
+  sample_split_coefs <- data.frame(matrix(coefficients(estimate_coefs), nrow = 1))
+  colnames(sample_split_coefs) <- names(coefficients(estimate_coefs))
+  return(sample_split_coefs)
+}
+
 
 all_noNA <- all[!is.na(all$MeanDomGas_11_kWh), ]
 all_noNA <- all_noNA[,!sapply(all_noNA, anyNA)]
@@ -73,28 +97,7 @@ all_sub <- all_noNA[,!names(all_noNA) %in% c("MeanDomElec_11_kWh","dense_2017","
 #   if (!i %% 100) print(i)
 # }
 
-rep_sats <- function(i, dat, Y){
-  indexes <- sample(1:nrow(dat), size = nrow(dat) / 2)
-  
-  model_tree = tree::tree(as.formula(paste0(Y," ~ .")), 
-                          data = dat[indexes,], 
-                          na.action = na.exclude,
-                          mincut = 5,
-                          mindev = 0.005)
-  
-  plot(model_tree, type = "proportional")
-  text(model_tree)
-  
-  signif_variables <- as.character(summary(model_tree)$used)
-  signif_variables <- signif_variables[signif_variables != "(Intercept)"]
-  
-  estimate_coefs_formula <- paste0(Y," ~ ", paste(signif_variables, collapse = " + "))
-  estimate_coefs <- lm(as.formula(estimate_coefs_formula), data = dat, subset = -indexes)
-  
-  sample_split_coefs <- data.frame(matrix(coefficients(estimate_coefs), nrow = 1))
-  colnames(sample_split_coefs) <- names(coefficients(estimate_coefs))
-  return(sample_split_coefs)
-}
+
 
 #system.time(rep_sats(X))
 # results
