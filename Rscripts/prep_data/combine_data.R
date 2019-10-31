@@ -10,6 +10,7 @@ gas <- read.csv("data-prepared/Gas_2010-17.csv", stringsAsFactors = FALSE)
 mot <- read.csv(paste0(secure_path,"/From Tim/MOT Data RACv9.3/MOT Data RACv9.3 LSOAoutputs_2011.csv"), stringsAsFactors = FALSE)
 age <- readRDS("data-prepared/age.Rds") # Not full UK
 census <- readRDS("data-prepared/census_lsoa.Rds") # Not full UK
+country <- readRDS("data-prepared/country_birth.Rds") # EW only
 names(census) <- gsub("[.]","",names(census))
 
 heating <- readRDS("data-prepared/central_heating.Rds") # Not full UK
@@ -17,11 +18,12 @@ EPC <- readRDS("data-prepared/EPC.Rds")
 population <- readRDS("data-prepared/population.Rds") # Not full UK
 density <- readRDS("data-prepared/populationDensity.Rds")
 rooms <- readRDS("data-prepared/rooms.Rds")
+ru <- readRDS("data-prepared/ruralurban.Rds") #EW only
 
-dir.create("temp")
-unzip("../Secure-Data/Excess/XSExpData1.zip", exdir = "temp")
-#tim <- read.csv("temp/XSExpData1.csv", stringsAsFactors = FALSE)
-unlink("temp", recursive = T)
+# dir.create("temp")
+# unzip("../Secure-Data/Excess/XSExpData1.zip", exdir = "temp")
+# tim <- read.csv("temp/XSExpData1.csv", stringsAsFactors = FALSE)
+# unlink("temp", recursive = T)
 
 dir.create("temp")
 unzip("../Secure-Data/Excess/Experian.zip", exdir = "temp")
@@ -116,7 +118,9 @@ all <- left_join(all, experian, by = c("LSOA11" = "LSOA"))
 all <- left_join(all, rooms, by = c("LSOA11" = "geography.code"))
 all <- left_join(all, emissions, by = c("LSOA11" = "LSOA"))
 all <- left_join(all, latitude, by = c("LSOA11" = "LSOA11"))
-rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, emissions,latitude)
+all <- left_join(all, ru, by = c("LSOA11" = "LSOA11"))
+all <- left_join(all, country, by = c("LSOA11" = "LSOA11"))
+rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, emissions,latitude, ru, country)
 
 all$median_household_income <- as.numeric(all$median_household_income)
 # Get average car emissions, by weighting miles by emissions
