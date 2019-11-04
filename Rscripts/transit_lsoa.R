@@ -118,7 +118,21 @@ count_stops <- function(gtfs){
   
 }
 
+bounds <- read_sf("data-prepared/LSOA_generalised.gpkg")
+bounds <- st_transform(bounds, 27700)
+foo <- st_transform(foo, 27700)
+foo2 <- st_join(foo, bounds)
+foo2 <- st_drop_geometry(foo2)
+foo2 <- foo2 %>%
+  group_by(LSOA11) %>%
+  summarise(stops_total = sum(stops_total),
+            stops_per_week = sum(stops_per_week))
 
+bounds2 <- left_join(bounds, foo2, by = "LSOA11")
+bounds2 <- bounds2[!is.na(bounds2$stops_total),]
+tm_shape(bounds2) +
+  tm_fill(col = "stops_per_week",
+          breaks = quantile(bounds2$stops_per_week, probs = c(seq(0,1,0.1))))
 
 # foo = trips_geom[!duplicated(trips_geom$geometry),]
 # qtm(foo, lines.col = "length_km")
