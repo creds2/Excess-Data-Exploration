@@ -116,6 +116,8 @@ plot(res_summary)
 
 saveRDS(res_summary, "data/importance_gas_tree.Rds")
 
+lm_gas <- lm(as.formula(paste0("MeanDomGas_11_kWh"," ~ ", paste(rownames(res_summary)[2:nrow(res_summary)], collapse = " + "))), data = all_sub)
+summary(lm_gas)
 
 ### Electric
 
@@ -134,7 +136,8 @@ all_sub <- all_noNA[,!names(all_noNA) %in% c("MeanDomGas_11_kWh","dense_2017","p
                                              "electric diesel_n","hybrid electric_n","other_n","petrol_n","all_cars_n",
                                              "diesel_co2","electric diesel_co2","hybrid electric_co2","other_co2","petrol_co2",
                                              "northing","petrol_emissions","diesel_emissions","petrol_litres","diesel_litres",
-                                             "petrol_kwh","diesel_kwh","driving_kwh","driving_kwh_percap")]
+                                             "petrol_kwh","diesel_kwh","driving_kwh","driving_kwh_percap",
+                                             "X4plusCarHH","X3CarHH","X1CarHH","X2CarHH")]
 
 
 
@@ -152,6 +155,9 @@ res_summary <- t(res_summary)
 plot(res_summary)
 
 saveRDS(res_summary, "data/importance_elec_tree.Rds")
+
+lm_elec <- lm(as.formula(paste0("MeanDomElec_11_kWh"," ~ ", paste(rownames(res_summary)[2:nrow(res_summary)], collapse = " + "))), data = all_sub)
+summary(lm_elec)
 
 ### Driving
 all_noNA <- all[!is.na(all$driving_kwh_percap), ]

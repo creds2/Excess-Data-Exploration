@@ -1,13 +1,18 @@
 library(sf)
 library(dplyr)
 library(Hmisc)
-#secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/Tim Share"
-secure_path <- "E:/OneDrive - University of Leeds/CREDS Data/Tim Share"
+
+if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data")){
+  secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data"
+} else {
+  secure_path <- "E:/OneDrive - University of Leeds/CREDS Data"
+}
+
 bounds <- st_read("data-prepared/LSOA_generalised.gpkg")
 elec <- read.csv("data-prepared/Electricty_2010-17.csv", stringsAsFactors = FALSE)
 elec <- elec[!duplicated(elec$LSOA11),] 
 gas <- read.csv("data-prepared/Gas_2010-17.csv", stringsAsFactors = FALSE)
-mot <- read.csv(paste0(secure_path,"/From Tim/MOT Data RACv9.3/MOT Data RACv9.3 LSOAoutputs_2011.csv"), stringsAsFactors = FALSE)
+mot <- read.csv(paste0(secure_path,"/Tim Share/From Tim/MOT Data RACv9.3/MOT Data RACv9.3 LSOAoutputs_2011.csv"), stringsAsFactors = FALSE)
 age <- readRDS("data-prepared/age.Rds") # Not full UK
 census <- readRDS("data-prepared/census_lsoa.Rds") # Not full UK
 country <- readRDS("data-prepared/country_birth.Rds") # EW only
@@ -33,8 +38,7 @@ names(experian) <- experian[4,]
 experian <- experian[5:nrow(experian),]
 experian <- experian[,c("GeographyValue","Median_(H) Household Income Value")]
 names(experian) <- c("LSOA","median_household_income")
-#emissions <- readRDS("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions.Rds")
-emissions <- readRDS("E:/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions.Rds")
+emissions <- readRDS(paste0(secure_path,"/github-secure-data/lsoa_emissions.Rds"))
 latitude <- st_centroid(bounds)
 latitude <- cbind(st_drop_geometry(latitude), st_coordinates(latitude))
 latitude <- latitude[,c("LSOA11","Y")]
@@ -43,13 +47,13 @@ names(latitude) <- c("LSOA11","northing")
 bounds <- bounds[bounds$LSOA11 %in% census$CODE,]
 elec <- elec[elec$LSOA11 %in% bounds$LSOA11, c("LSOA11",
                                                #"DomMet_11","DomMet_17",
-                                               "MeanDomElec_11_kWh"#,"MeanDomElec_17_kWh"#,
-                                               #"TotDomElec_11_kWh","TotDomElec_17_kWh"
+                                               "MeanDomElec_11_kWh",#"MeanDomElec_17_kWh"#,
+                                               "TotDomElec_11_kWh"#,"TotDomElec_17_kWh"
                                                )]
 gas <- gas[gas$LSOA11 %in% bounds$LSOA11, c("LSOA11",
                                             #"GasMet_11", "GasMet_17",
-                                            "MeanDomGas_11_kWh"#,"MeanDomGas_17_kWh"#,
-                                            #"TotDomGas_11_kWh", "TotDomGas_17_kWh"
+                                            "MeanDomGas_11_kWh",#"MeanDomGas_17_kWh"#,
+                                            "TotDomGas_11_kWh"#, "TotDomGas_17_kWh"
                                             )]
 mot <- mot[mot$LSOA %in% bounds$LSOA11,]
 names(mot) <- c("LSOA", "cars_total","cars_miles","pu5k","p5_12k","po12k","age_av","miles_av_u3",
@@ -151,4 +155,4 @@ all$driving_kwh_percap <- all$driving_kwh / all$pop2011
 
 sapply(all, function(x){sum(is.na(x))})
 
-saveRDS(all,"E:/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_all.Rds")
+saveRDS(all,paste0(secure_path,"/github-secure-data/lsoa_all.Rds"))
