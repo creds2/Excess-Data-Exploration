@@ -5,18 +5,19 @@ library(ggplot2)
 # generate data -----------------------------------------------
 #all = readRDS("E:/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_all.Rds")
 all = readRDS("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_all.Rds")
+all$LSOA11 = NULL
 
 rep_sats <- function(i, dat, Y){
   indexes <- sample(1:nrow(dat), size = nrow(dat) / 2)
   
   model_tree = tree::tree(as.formula(paste0(Y," ~ .")), 
                           data = dat[indexes,], 
-                          na.action = na.exclude,
-                          mincut = 5,
-                          mindev = 0.005)
+                          na.action = na.exclude) #,
+                          #mincut = 10,
+                          #mindev = 0.005)
   
-  plot(model_tree, type = "proportional")
-  text(model_tree)
+  #plot(model_tree, type = "proportional")
+  #text(model_tree)
   
   signif_variables <- as.character(summary(model_tree)$used)
   signif_variables <- signif_variables[signif_variables != "(Intercept)"]
@@ -24,6 +25,14 @@ rep_sats <- function(i, dat, Y){
   estimate_coefs_formula <- paste0(Y," ~ ", paste(signif_variables, collapse = " + "))
   estimate_coefs <- lm(as.formula(estimate_coefs_formula), data = dat, subset = -indexes)
   
+  
+  #coeff <- summary(estimate_coefs)$coefficients
+  #coeff <- as.data.frame(coeff)
+  #coeff <- coeff[coeff$`Pr(>|t|)` < 0.001,]
+  #return(coeff)
+  # 
+  # 
+  # 
   sample_split_coefs <- data.frame(matrix(coefficients(estimate_coefs), nrow = 1))
   colnames(sample_split_coefs) <- names(coefficients(estimate_coefs))
   return(sample_split_coefs)
@@ -33,8 +42,8 @@ rep_sats <- function(i, dat, Y){
 all_noNA <- all[!is.na(all$MeanDomGas_11_kWh), ]
 all_noNA <- all_noNA[,!sapply(all_noNA, anyNA)]
 all_noNA <- all_noNA[,!names(all_noNA) %in% c("DomMet_17","MeanDomElec_17_kWh","TotDomElec_17_kWh","GasMet_11",
-                                              "TotDomGas_11_kWh","cars_total","cars_miles","pu5k",
-                                              "TotDomGas_11_kWh","GasMet_11","MeanDomElec_17_kWh")]
+                                              "TotDomGas_11_kWh","cars_total","cars_miles",
+                                              "TotDomGas_11_kWh","GasMet_11","MeanDomElec_17_kWh","RUC11")]
 
 all_sub <- all_noNA[,!names(all_noNA) %in% c("MeanDomElec_11_kWh","dense_2017","pop2016",
                                              "cars_total","cars_miles",
@@ -46,6 +55,10 @@ all_sub <- all_noNA[,!names(all_noNA) %in% c("MeanDomElec_11_kWh","dense_2017","
                                              "diesel_co2","electric diesel_co2","hybrid electric_co2","other_co2","petrol_co2",
                                              "northing","petrol_emissions","diesel_emissions","petrol_litres","diesel_litres",
                                              "petrol_kwh","diesel_kwh","driving_kwh","driving_kwh_percap")]
+
+#profvis::profvis(foo <- rep_sats(1,all_sub, "MeanDomGas_11_kWh"))
+
+system.time(rep_sats(1,all_sub, "MeanDomGas_11_kWh"))
 
 # X <- data.matrix(all_sub[,!names(all_sub) %in% c("LSOA11","MeanDomGas_11_kWh")])
 # 
@@ -103,14 +116,37 @@ all_sub <- all_noNA[,!names(all_noNA) %in% c("MeanDomElec_11_kWh","dense_2017","
 # results
 ncores = 4
 cl <- parallel::makeCluster(ncores)
-res <- pbapply::pblapply(1:1000, rep_sats, dat = all_sub, Y = "MeanDomGas_11_kWh", cl = cl)
+res <- pbapply::pblapply(1:10, rep_sats, dat = all_sub, Y = "MeanDomGas_11_kWh", cl = cl)
 parallel::stopCluster(cl)
 rm(cl)
 
+# res_summary <- unlist(lapply(res, row.names))
+# res_summary <- as.data.frame(table(res_summary))
+# res_summary <- res_summary[order(res_summary$Freq, decreasing = TRUE),]
+# barplot(res_summary$Freq, names.arg = res_summary$res_summary, las = 2)
+# 
+rotate_x <- function(data, column_to_plot, labels_vec, rot_angle) {
+   plt <- barplot(data, col='steelblue', xaxt="n")
+   text(plt, par("usr")[3], labels = labels_vec, srt = rot_angle, adj = c(1.1,1.1), xpd = TRUE, cex=0.6) 
+}
+# 
+rotate_x(res_summary[,1], 1, rownames(res_summary), 45)
 
-res_summary <- res %>% 
+produce_hist <- function(x){
+  x <- x[!is.na(x)]
+  med <- median(x, na.rm = TRUE)
+  if(med > 0){
+    summ <- sum(x>0)
+  } else {
+    summ <- sum(x<0)
+  }
+  return(summ)
+}
+
+
+res_summary <- res %>%
   dplyr::bind_rows() %>%
-  summarize_all(function(x) sum(!is.na(x)))
+  summarize_all(produce_hist)
 res_summary <- t(res_summary)
 plot(res_summary)
 
@@ -125,7 +161,7 @@ all_noNA <- all[!is.na(all$MeanDomElec_11_kWh), ]
 all_noNA <- all_noNA[,!sapply(all_noNA, anyNA)]
 all_noNA <- all_noNA[,!names(all_noNA) %in% c("DomMet_17","MeanDomElec_17_kWh","TotDomElec_17_kWh","GasMet_11",
                                               "TotDomGas_11_kWh","cars_total","cars_miles","pu5k",
-                                              "TotDomGas_11_kWh","GasMet_11","MeanDomElec_17_kWh")]
+                                              "TotDomGas_11_kWh","GasMet_11","MeanDomElec_17_kWh","RUC11")]
 
 all_sub <- all_noNA[,!names(all_noNA) %in% c("MeanDomGas_11_kWh","dense_2017","pop2016",
                                              "cars_total","cars_miles",
@@ -148,11 +184,16 @@ parallel::stopCluster(cl)
 rm(cl)
 
 
-res_summary <- res %>% 
-  dplyr::bind_rows() %>%
-  summarize_all(function(x) sum(!is.na(x)))
-res_summary <- t(res_summary)
-plot(res_summary)
+# res_summary <- res %>% 
+#   dplyr::bind_rows() %>%
+#   summarize_all(function(x) sum(!is.na(x)))
+# res_summary <- t(res_summary)
+# plot(res_summary)
+
+res_summary <- unlist(lapply(res, row.names))
+res_summary <- as.data.frame(table(res_summary))
+res_summary <- res_summary[order(res_summary$Freq, decreasing = TRUE),]
+rotate_x(res_summary, "Freq", res_summary$res_summary, 45)
 
 saveRDS(res_summary, "data/importance_elec_tree.Rds")
 
