@@ -13,6 +13,10 @@ if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data")){
 
 all = readRDS(paste0(secure_path,"/github-secure-data/lsoa_all.Rds"))
 
+names(all) <- gsub(".","_", names(all), fixed = TRUE)
+names(all) <- gsub(" ","_", names(all), fixed = TRUE)
+
+
 # Functions
 
 rep_sats <- function(i, dat, Y){
@@ -76,14 +80,15 @@ exclude_all <- c("LSOA11","DomMet_17","MeanDomElec_17_kWh","TotDomElec_17_kWh","
                  "diesel_co2","petrol_n","diesel_n",
                  "pu5k","p5_12k","po12k",
                  "miles_av_u3","miles_av_o13",
+                 "electric diesel_n","hybrid_electric_n","other_n","petrol_n","all_cars_n","diesel_co2",
+                 "electric diesel_co2", "hybrid_electric_co2", "other_co2","petrol_co2",
                  "mean_bedrooms")
 
 exclude_gas <- c("MeanDomElec_11_kWh","dense_2017","pop2016",             
                  "age_av","miles_av_u3","miles_av_o13","pcars_diesel","pmiles_diesel","vans_total",
                  "vans_miles","pmiles_car","pmiles_vans","cars_percap","miles_percap","diesel_n",
-                 "electric diesel_n","hybrid electric_n","other_n","petrol_n","all_cars_n","diesel_co2",
-                 "electric diesel_co2", "hybrid electric_co2", "other_co2","petrol_co2","petrol_emissions",
-                 "diesel_emissions","petrol_litres","diesel_litres","petrol_kwh","diesel_kwh","driving_kwh",
+                 "petrol_emissions","diesel_emissions","petrol_litres","diesel_litres",
+                 "petrol_kwh","diesel_kwh","driving_kwh",
                  "driving_kwh_percap")
 
 
@@ -94,7 +99,7 @@ exclude_elec <- c("MeanDomGas_11_kWh","age_av","pcars_diesel","pmiles_diesel","v
                   "X2CarHH")
 
 
-exclude_drive <- c("MeanDomGas_11_kWh","dense_2017","pop2016",
+exclude_drive <- c("MeanDomGas_11_kWh","MeanDomElec_11_kWh","dense_2017","pop2016",
                   "petrol_litres","diesel_litres",
                   "petrol_kwh","diesel_kwh","driving_kwh","petrol_co2","diesel_co2",
                   "petrol_n","diesel_n")
