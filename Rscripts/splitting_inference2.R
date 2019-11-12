@@ -198,7 +198,10 @@ abline(a = 0 , b = 1, col = "red")
 
 # try again to predict cars per cap
 exclude_cars <- c("miles_percap","NoCarsHH","X1CarHH","X2CarHH","X3CarHH","X4plusCarHH",
-                  "mean_rooms")
+                  "mean_rooms","Whole_House_Detached","Mortgage","Outright","Rented_Landlord",
+                  "Occupancy_Rooms","Whole_House_Semi","Occupancy_Bedrooms",
+                  "NoCH","Flat_PurposeBuilt","All_Grade","pHeating_None",
+                  "mean_household_size")
 
 
 all_drive <- all_drive[!names(all_drive) %in% c(exclude_cars)]
