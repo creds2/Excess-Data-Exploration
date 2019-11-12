@@ -1,6 +1,18 @@
 library(tidytransit)
+source("https://raw.githubusercontent.com/ITSLeeds/UK2GTFS/master/R/gtfs_merge.R")
 
-gtfs <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_EA <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_EM <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_L1 <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_L2 <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_S <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_SE <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_SW <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_W <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+gtfs_Y <- tidytransit::read_gtfs("https://github.com/ITSLeeds/UK2GTFS/releases/download/0.001/EA_redo.zip")
+
+
+
 validation_result <- attr(gtfs, "validation_result")
 
 # stop_freq <- get_stop_frequency(gtfs, start_hour = 0L, end_hour = 24L,
