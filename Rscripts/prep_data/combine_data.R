@@ -140,6 +140,9 @@ all <- left_join(all, access_town, by = c("LSOA11" = "LSOA11"))
 rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, emissions,latitude, ru, country)
 
 all$median_household_income <- as.numeric(all$median_household_income)
+
+
+
 # Get average car emissions, by weighting miles by emissions
 
 # fix NAs
@@ -149,6 +152,85 @@ all$`hybrid electric_n`[is.na(all$`hybrid electric_n`)] <- 0
 all$`other_n`[is.na(all$`other_n`)] <- 0
 all$petrol_n[is.na(all$petrol_n)] <- 0
 all$all_cars_n[is.na(all$all_cars_n)] <- 0
+all$median_household_income[is.na(all$median_household_income)] <- median(all$median_household_income, na.rm = TRUE)
+
+# missing dtf stats
+
+# is_england <- substr(all$LSOA11,1,1)
+# is_england <- is_england == "E"
+# 
+# all$acc_employ_PTtime[is.na(all$acc_employ_PTtime ) & is_england] <- 0
+# all$acc_employ_PTfrequency[is.na(all$acc_employ_PTfrequency ) & is_england] <- 0
+# all$acc_employ_cycletime[is.na(all$acc_employ_cycletime ) & is_england] <- 0
+# all$acc_employ_cartime[is.na(all$acc_employ_cartime ) & is_england] <- 0          
+# all$acc_employ_p20min_PT_walk[is.na(all$acc_employ_p20min_PT_walk ) & is_england] <- 100
+# all$acc_employ_p20min_cycle[is.na(all$acc_employ_p20min_cycle ) & is_england] <- 100
+# all$acc_employ_p20min_car[is.na(all$acc_employ_p20min_car ) & is_england] <- 100
+# all$acc_employ_p20min_composite[is.na(all$acc_employ_p20min_composite ) & is_england] <- 100 
+# all$acc_employ_p40min_PT_walk[is.na(all$acc_employ_p40min_PT_walk ) & is_england] <- 100
+# all$acc_employ_p40min_cycle[is.na(all$acc_employ_p40min_cycle ) & is_england] <- 100
+# all$acc_employ_p40min_car[is.na(all$acc_employ_p40min_car ) & is_england] <- 100
+# all$acc_employ_p40min_composite[is.na(all$acc_employ_p40min_composite ) & is_england] <- 100 
+# 
+# all$acc_food_PTtime[is.na(all$acc_food_PTtime ) & is_england] <- 0
+# all$acc_food_PTfrequency[is.na(all$acc_food_PTfrequency ) & is_england] <- 0
+# all$acc_food_cycletime[is.na(all$acc_food_cycletime ) & is_england] <- 0
+# all$acc_food_cartime[is.na(all$acc_food_cartime ) & is_england] <- 0            
+# all$acc_food_p15min_PT_walk[is.na(all$acc_food_p15min_PT_walk ) & is_england] <- 100
+# all$acc_food_p15min_cycle[is.na(all$acc_food_p15min_cycle ) & is_england] <- 100
+# all$acc_food_p15min_car[is.na(all$acc_food_p15min_car ) & is_england] <- 100
+# all$acc_food_p15min_composite[is.na(all$acc_food_p15min_composite ) & is_england] <- 100   
+# all$acc_food_p30min_PT_walk[is.na(all$acc_food_p30min_PT_walk ) & is_england] <- 100
+# all$acc_food_p30min_cycle[is.na(all$acc_food_p30min_cycle ) & is_england] <- 100
+# all$acc_food_p30min_car[is.na(all$acc_food_p30min_car ) & is_england] <- 100
+# all$acc_food_p30min_composite[is.na(all$acc_food_p30min_composite ) & is_england] <- 100 
+# 
+# all$acc_gp_PTtime[is.na(all$acc_gp_PTtime ) & is_england] <- 0
+# all$acc_gp_PTfrequency[is.na(all$acc_gp_PTfrequency ) & is_england] <- 0
+# all$acc_gp_cycletime[is.na(all$acc_gp_cycletime ) & is_england] <- 0
+# all$acc_gp_cartime[is.na(all$acc_gp_cartime ) & is_england] <- 0              
+# all$acc_gp_p15min_PT_walk[is.na(all$acc_gp_p15min_PT_walk ) & is_england] <- 100
+# all$acc_gp_p15min_cycle[is.na(all$acc_gp_p15min_cycle ) & is_england] <- 100
+# all$acc_gp_p15min_car[is.na(all$acc_gp_p15min_car ) & is_england] <- 100
+# all$acc_gp_p30min_PT_walk[is.na(all$acc_gp_p30min_PT_walk ) & is_england] <- 100       
+# all$acc_gp_p30min_cycle[is.na(all$acc_gp_p30min_cycle ) & is_england] <- 100
+# all$acc_gp_p30min_car[is.na(all$acc_gp_p30min_car ) & is_england] <- 100
+# 
+# all$acc_primary_PTtime[is.na(all$acc_primary_PTtime ) & is_england] <- 0
+# all$acc_primary_PTfrequency[is.na(all$acc_primary_PTfrequency ) & is_england] <- 0     
+# all$acc_primary_cycletime[is.na(all$acc_primary_cycletime ) & is_england] <- 0
+# all$acc_primary_cartime[is.na(all$acc_primary_cartime ) & is_england] <- 0
+# all$acc_primary_p15min_PT_walk[is.na(all$acc_primary_p15min_PT_walk ) & is_england] <- 100
+# all$acc_primary_p15min_cycle[is.na(all$acc_primary_p15min_cycle ) & is_england] <- 100    
+# all$acc_primary_p15min_car[is.na(all$acc_primary_p15min_car ) & is_england] <- 100
+# all$acc_primary_p30min_PT_walk[is.na(all$acc_primary_p30min_PT_walk ) & is_england] <- 100
+# all$acc_primary_p30min_cycle[is.na(all$acc_primary_p30min_cycle ) & is_england] <- 100
+# all$acc_primary_p30min_car[is.na(all$acc_primary_p30min_car ) & is_england] <- 100 
+# 
+# all$acc_secondary_PTtime[is.na(all$acc_secondary_PTtime ) & is_england] <- 0
+# all$acc_secondary_PTfrequency[is.na(all$acc_secondary_PTfrequency ) & is_england] <- 0
+# all$acc_secondary_cycletime[is.na(all$acc_secondary_cycletime ) & is_england] <- 0
+# all$acc_secondary_cartime[is.na(all$acc_secondary_cartime ) & is_england] <- 0       
+# all$acc_secondary_p20min_PT_walk[is.na(all$acc_secondary_p20min_PT_walk ) & is_england] <- 100
+# all$acc_secondary_p20min_cycle[is.na(all$acc_secondary_p20min_cycle ) & is_england] <- 100
+# all$acc_secondary_p20min_car[is.na(all$acc_secondary_p20min_car ) & is_england] <- 100
+# all$acc_secondary_p40min_PT_walk[is.na(all$acc_secondary_p40min_PT_walk ) & is_england] <- 100
+# all$acc_secondary_p40min_cycle[is.na(all$acc_secondary_p40min_cycle ) & is_england] <- 100
+# all$acc_secondary_p40min_car[is.na(all$acc_secondary_p40min_car ) & is_england] <- 100
+# 
+# all$acc_town_PTtime[is.na(all$acc_town_PTtime ) & is_england] <- 0
+# all$acc_town_PTfrequency[is.na(all$acc_town_PTfrequency ) & is_england] <- 0        
+# all$acc_town_cycletime[is.na(all$acc_town_cycletime ) & is_england] <- 0
+# all$acc_town_cartime[is.na(all$acc_town_cartime ) & is_england] <- 0
+# all$acc_town_p15min_PT_walk[is.na(all$acc_town_p15min_PT_walk ) & is_england] <- 100
+# all$acc_town_p15min_cycle[is.na(all$acc_town_p15min_cycle ) & is_england] <- 100       
+# all$acc_town_p15min_car[is.na(all$acc_town_p15min_car ) & is_england] <- 100
+# all$acc_town_p15min_composite[is.na(all$acc_town_p15min_composite ) & is_england] <- 100
+# all$acc_town_p30min_PT_walk[is.na(all$acc_town_p30min_PT_walk ) & is_england] <- 100
+# all$acc_town_p30min_cycle[is.na(all$acc_town_p30min_cycle ) & is_england] <- 100       
+# all$acc_town_p30min_car[is.na(all$acc_town_p30min_car ) & is_england] <- 100
+# all$acc_town_p30min_composite[is.na(all$acc_town_p30min_composite ) & is_england] <- 100
+
 
 
 

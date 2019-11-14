@@ -113,7 +113,7 @@ all_gas <- all[,!names(all) %in% c(exclude_all, exclude_gas)]
 all_gas <- all_gas[!is.na(all_gas$MeanDomGas_11_kWh),]
 all_gas <- all_gas[,!sapply(all_gas, anyNA)]
 
-res_gas <- run_anal(Y = "MeanDomGas_11_kWh", dat = all_gas,times = 2000, ncores = 4)
+res_gas <- run_anal(Y = "MeanDomGas_11_kWh", dat = all_gas,times = 2000, ncores = 5)
 saveRDS(res_gas, "data/importance_gas_tree.Rds")
 
 top_gas <- rownames(res_gas)[res_gas[,1] > (max(res_gas[,1]) / 4)]
@@ -157,6 +157,11 @@ abline(a = 0 , b = 1, col = "red")
 
 all_drive <- all[,!names(all) %in% c(exclude_all, exclude_drive)]
 all_drive <- all_drive[!is.na(all_drive$driving_kwh_percap),]
+all_drive <- all_drive[substr(all$LSOA11,1,1) == "E",]
+all_drive <- all_drive[!is.na(all_drive$acc_employ_PTtime),]
+all_drive <- all_drive[!is.na(all_drive$acc_secondary_PTfrequency),]
+all_drive <- all_drive[!is.na(all_drive$acc_secondary_p20min_PT_walk),]
+all_drive <- all_drive[!is.na(all_drive$acc_town_PTfrequency),]
 all_drive <- all_drive[,!sapply(all_drive, anyNA)]
 
 res_drive <- run_anal(Y = "driving_kwh_percap", dat = all_drive,times = 2000, ncores = 5)
