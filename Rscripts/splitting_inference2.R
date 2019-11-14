@@ -12,6 +12,7 @@ if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data")){
 }
 
 all = readRDS(paste0(secure_path,"/github-secure-data/lsoa_all.Rds"))
+all$median_household_income[is.na(all$median_household_income)] <- median(all$median_household_income, na.rm = TRUE)
 
 names(all) <- gsub(".","_", names(all), fixed = TRUE)
 names(all) <- gsub(" ","_", names(all), fixed = TRUE)
@@ -112,7 +113,7 @@ all_gas <- all[,!names(all) %in% c(exclude_all, exclude_gas)]
 all_gas <- all_gas[!is.na(all_gas$MeanDomGas_11_kWh),]
 all_gas <- all_gas[,!sapply(all_gas, anyNA)]
 
-res_gas <- run_anal(Y = "MeanDomGas_11_kWh", dat = all_gas,times = 2000, ncores = 5)
+res_gas <- run_anal(Y = "MeanDomGas_11_kWh", dat = all_gas,times = 2000, ncores = 4)
 saveRDS(res_gas, "data/importance_gas_tree.Rds")
 
 top_gas <- rownames(res_gas)[res_gas[,1] > (max(res_gas[,1]) / 4)]
