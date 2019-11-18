@@ -22,11 +22,25 @@ model_gas <- lm(as.formula(paste0("MeanDomGas_11_kWh ~ ",paste(top_gas, collapse
                 data = all)
 summ <- summary(model_gas)
 summ
+
+png(file = "plots/gas_model.png", width = 1024, height = 768, pointsize = 24)
 plot(all$MeanDomGas_11_kWh[!is.na(all$MeanDomGas_11_kWh)], predict(model_gas),
      xlab = "Actual mean gas consumption (kWh)",
-     ylab = "Predicted consumption")
+     ylab = "Predicted consumption",
+     xlim = c(0, 40000),
+     ylim = c(0, 40000),
+     pch = 20)
 abline(0,1, col = "red")
+dev.off()
+
 coff <- summ$coefficients
+
+all_gas <- all[!is.na(all$MeanDomGas_11_kWh),]
+lm <- lm(all_gas$MeanDomGas_11_kWh ~ all_gas$mean_rooms)
+all_gas$gas_resid <- lm$residuals
+
+plot(all_gas$Outright, all_gas$gas_resid)
+
 
 
 res_elec <- readRDS("data/importance_elec_tree.Rds")
@@ -37,10 +51,16 @@ model_elec <- lm(as.formula(paste0("MeanDomElec_11_kWh ~ ",paste(top_elec, colla
                 data = all)
 summ <- summary(model_elec)
 summ
+
+png(file = "plots/electricity_model.png", width = 1024, height = 768, pointsize = 24)
 plot(all$MeanDomElec_11_kWh[!is.na(all$MeanDomElec_11_kWh)], predict(model_elec),
-     xlab = "Actual mean elec consumption (kWh)",
-     ylab = "Predicted consumption")
+     xlab = "Actual mean electricity consumption (kWh)",
+     ylab = "Predicted consumption",
+     xlim = c(0, 17000),
+     ylim = c(0, 17000),
+     pch = 20)
 abline(0,1, col = "red")
+dev.off()
 coff <- summ$coefficients
 
 res_miles <- readRDS("data/importance_miles_per_cap_tree.Rds")
