@@ -89,7 +89,7 @@ coff <- summ$coefficients
 
 
 res_cars <- readRDS("data/importance_cars_per_cap_tree.Rds")
-res_cars2 <- readRDS("data/importance_cars_per_cap_tree2.Rds")
+#res_cars <- readRDS("data/importance_cars_per_cap_tree2.Rds")
 top_cars <- rownames(res_cars)[res_cars[,1] > (max(res_cars[,1]) / 4)]
 top_cars <- top_cars[top_cars != "(Intercept)"]
 
