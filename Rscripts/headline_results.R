@@ -73,14 +73,23 @@ model_miles <- lm(as.formula(paste0("miles_percap ~ ",paste(top_miles, collapse 
                  data = all_miles)
 summ <- summary(model_miles)
 summ
+
+png(file = "plots/miles_model.png", width = 1024, height = 768, pointsize = 24)
 plot(all_miles$miles_percap, predict(model_miles),
-     xlab = "Actual mean miles consumption (kWh)",
-     ylab = "Predicted consumption")
+     xlab = "Actual mean miles per capita",
+     ylab = "Predicted miles per capita",
+     xlim = c(0, 30000),
+     ylim = c(0, 30000),
+     pch = 20)
 abline(0,1, col = "red")
+dev.off()
+
+
 coff <- summ$coefficients
 
 
 res_cars <- readRDS("data/importance_cars_per_cap_tree.Rds")
+res_cars2 <- readRDS("data/importance_cars_per_cap_tree2.Rds")
 top_cars <- rownames(res_cars)[res_cars[,1] > (max(res_cars[,1]) / 4)]
 top_cars <- top_cars[top_cars != "(Intercept)"]
 
@@ -90,8 +99,20 @@ model_cars <- lm(as.formula(paste0("cars_percap ~ ",paste(top_cars, collapse = "
                   data = all_cars)
 summ <- summary(model_cars)
 summ
+
+png(file = "plots/cars_model.png", width = 1024, height = 768, pointsize = 24)
 plot(all_cars$cars_percap, predict(model_cars),
-     xlab = "Actual mean cars consumption (kWh)",
-     ylab = "Predicted consumption")
+     xlab = "Actual mean cars per capita",
+     ylab = "Predicted cars per capita",
+     xlim = c(0, 3.6),
+     ylim = c(0, 3.6),
+     pch = 20)
 abline(0,1, col = "red")
+dev.off()
+
+
 coff <- summ$coefficients
+
+
+# realthispohip between cars and miles
+summary(all$cars_miles / all$cars_total)

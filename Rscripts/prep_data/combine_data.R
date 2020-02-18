@@ -17,6 +17,7 @@ age <- readRDS("data-prepared/age.Rds") # Not full UK
 census <- readRDS("data-prepared/census_lsoa.Rds") # Not full UK
 country <- readRDS("data-prepared/country_birth.Rds") # EW only
 names(census) <- gsub("[.]","",names(census))
+school <- readRDS("data-prepared/Trave2School.Rds")
 
 heating <- readRDS("data-prepared/central_heating.Rds") # Not full UK
 EPC <- readRDS("data-prepared/EPC.Rds")
@@ -137,7 +138,8 @@ all <- left_join(all, access_gp, by = c("LSOA11" = "LSOA11"))
 all <- left_join(all, access_primary, by = c("LSOA11" = "LSOA11"))
 all <- left_join(all, access_secondary, by = c("LSOA11" = "LSOA11"))
 all <- left_join(all, access_town, by = c("LSOA11" = "LSOA11"))
-rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, emissions,latitude, ru, country)
+all <- left_join(all, school, by = c("LSOA11" = "LSOA11"))
+rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, emissions,latitude, ru, country, school)
 
 all$median_household_income <- as.numeric(all$median_household_income)
 

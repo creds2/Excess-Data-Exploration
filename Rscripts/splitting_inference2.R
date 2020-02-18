@@ -209,7 +209,8 @@ abline(a = 0 , b = 1, col = "red")
 #                   "NoCH","Flat_PurposeBuilt","All_Grade","pHeating_None",
 #                   "mean_household_size")
 exclude_cars <- c("mean_rooms","NoCarsHH","X1CarHH","X2CarHH","X3CarHH","X4plusCarHH","miles_percap",
-                  "Whole_House_Detached","Mortgage","Outright","Rented_Landlord")
+                  "Whole_House_Detached","Mortgage","Outright","Rented_Landlord",
+                  "Occupancy_Rooms","Whole_House_Semi","Occupancy_Bedrooms")
 
 all_drive <- all_drive[!names(all_drive) %in% c(exclude_cars)]
 
@@ -217,7 +218,7 @@ all_drive <- all_drive[!names(all_drive) %in% c(exclude_cars)]
 
 
 res_cars <- run_anal(Y = "cars_percap", dat = all_drive,times = 2000, ncores = 5)
-saveRDS(res_cars, "data/importance_cars_per_cap_tree.Rds")
+saveRDS(res_cars, "data/importance_cars_per_cap_tree3.Rds")
 
 top_cars <- rownames(res_cars)[res_cars[,1] > (max(res_cars[,1]) / 4)]
 top_cars <- top_cars[top_cars != "(Intercept)"]

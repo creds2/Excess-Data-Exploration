@@ -47,7 +47,7 @@ ggplot(lsoa_gas_ave_melt,
 
 # Map change
 
-bounds <- sf::read_sf("data-prepared/LSOA_generalised.gpkg")
+bounds <- sf::read_sf("data-prepared/LSOA_forplots.gpkg")
 bounds <- dplyr::left_join(bounds, lsoa_gas_ave)
 bounds <- bounds[,c("LSOA11","2013","2017")]
 bounds$pchange = (bounds$`2017` -  bounds$`2013`) / bounds$`2013` * 100
@@ -58,6 +58,13 @@ map <- tm_shape(bounds) +  # Build the map
           palette = "-RdYlBu", 
           legend.title = "% change in gas consumption")
 tmap_save(map, filename = "plots/energy_trends/gas_change.png", dpi = 600)
+
+map <- tm_shape(bounds) +  # Build the map
+  tm_fill("2017",
+          breaks = quantile(bounds$`2017`, probs = seq(0,1,0.1), na.rm = TRUE),
+          palette = "-RdYlBu", 
+          legend.title = "Average gas consumption 2017")
+tmap_save(map, filename = "plots/energy_trends/gas_2017.png", dpi = 600)
 
 
 # Electricity
@@ -105,7 +112,7 @@ ggplot(lsoa_elec_ave_melt,
 
 # Map change
 
-bounds <- sf::read_sf("data-prepared/LSOA_generalised.gpkg")
+bounds <- sf::read_sf("data-prepared/LSOA_forplots.gpkg")
 bounds <- dplyr::left_join(bounds, lsoa_elec_ave)
 bounds <- bounds[,c("LSOA11","2013","2017")]
 bounds$pchange = (bounds$`2017` -  bounds$`2013`) / bounds$`2013` * 100
@@ -117,4 +124,9 @@ map <- tm_shape(bounds) +  # Build the map
           legend.title = "% change in elec consumption")
 tmap_save(map, filename = "plots/energy_trends/elec_change.png", dpi = 600)
 
-
+map <- tm_shape(bounds) +  # Build the map
+  tm_fill("2017",
+          breaks = quantile(bounds$`2017`, probs = seq(0,1,0.1), na.rm = TRUE),
+          palette = "-RdYlBu", 
+          legend.title = "Average electric consumption 2017")
+tmap_save(map, filename = "plots/energy_trends/electric_2017.png", dpi = 600)
