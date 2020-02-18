@@ -42,6 +42,6 @@ map <- tm_shape(all_gas) +
           palette = "-RdYlBu",
           title = "kWh per year",
           style = "fixed",
-          breaks = quantile(all_gas$gas_diff, seq(0,1,0.2)))
+          breaks = quantile(all_gas$gas_diff, seq(0,1,0.1), na.rm = TRUE))
 tmap_save(map, "plots/gas_outliers2.png",
           dpi = 600)
