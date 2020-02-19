@@ -2,6 +2,7 @@
 library(sf)
 library(dplyr)
 library(tmap)
+library(ggplot2)
 
 if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data")){
   secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data"
@@ -12,6 +13,13 @@ if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data")){
 bounds = read_sf("data-prepared/LSOA_forplots.gpkg")
 bounds$country = substr(bounds$LSOA11, 1, 1)
 bounds = bounds[bounds$country != "S",]
+
+ru <- readRDS("data-prepared/ruralurban.Rds")
+ru <- left_join(bounds, ru, by = "LSOA11")
+urban <- ru[ru$RUC11 %in% c("Urban major conurbation","Urban city and town","Urban minor conurbation"),]
+urban <- group_by(urban, RUC11) %>%
+  summarise()
+#urban = st_union(urban$geom)
 
 all = readRDS(paste0(secure_path,"/github-secure-data/lsoa_all.Rds"))
 all$SocGrade_AB <- all$SocGrade_AB * 100
@@ -34,7 +42,7 @@ all_gas$gas_predict <- predict(model_gas)
 all_gas$gas_diff <- all_gas$gas_predict - all_gas$MeanDomGas_11_kWh
 summary(all_gas$gas_diff)
 
-all_gas = all_gas[,c("LSOA11","gas_diff")]
+all_gas = all_gas[,c("LSOA11","RUC11","gas_diff")]
 all_gas = left_join(bounds, all_gas, by = c("LSOA11"))
 
 map <- tm_shape(all_gas) +
@@ -42,6 +50,47 @@ map <- tm_shape(all_gas) +
           palette = "-RdYlBu",
           title = "kWh per year",
           style = "fixed",
-          breaks = quantile(all_gas$gas_diff, seq(0,1,0.1), na.rm = TRUE))
+          breaks = quantile(all_gas$gas_diff, seq(0,1,0.1), na.rm = TRUE)) +
+  tm_shape(urban) +
+  tm_borders(col = "black")
 tmap_save(map, "plots/gas_outliers2.png",
-          dpi = 600)
+          dpi = 300)
+
+#all_ru <- left_join(all, ru, by = "LSOA11")
+all_gas_plot = all_gas[!is.na(all_gas$RUC11),]
+ggplot(all_gas_plot, aes(x = stringr::str_wrap(RUC11, 15), y = gas_diff)) +
+  geom_boxplot() +
+  coord_flip()
+
+
+res_elec <- readRDS("data/importance_elec_tree.Rds")
+top_elec <- rownames(res_elec)[res_elec[,1] > (max(res_elec[,1]) / 4)]
+top_elec <- top_elec[top_elec != "(Intercept)"]
+
+model_elec <- lm(as.formula(paste0("MeanDomElec_11_kWh ~ ",paste(top_elec, collapse = " + "))),
+                data = all)
+
+all_elec <- all[!is.na(all$MeanDomElec_11_kWh),]
+all_elec$elec_predict <- predict(model_elec)
+all_elec$elec_diff <- all_elec$elec_predict - all_elec$MeanDomElec_11_kWh
+summary(all_elec$elec_diff)
+
+all_elec = all_elec[,c("LSOA11","RUC11","elec_diff")]
+all_elec = left_join(bounds, all_elec, by = c("LSOA11"))
+
+map <- tm_shape(all_elec) +
+  tm_fill(col = "elec_diff",
+          palette = "-RdYlBu",
+          title = "kWh per year",
+          style = "fixed",
+          breaks = quantile(all_elec$elec_diff, seq(0,1,0.1), na.rm = TRUE)) +
+  tm_shape(urban) +
+  tm_borders(col = "black")
+tmap_save(map, "plots/elec_outliers.png",
+          dpi = 300)
+
+#all_ru <- left_join(all, ru, by = "LSOA11")
+all_elec_plot = all_elec[!is.na(all_elec$RUC11),]
+ggplot(all_elec_plot, aes(x = stringr::str_wrap(RUC11, 15), y = elec_diff)) +
+  geom_boxplot() +
+  coord_flip()
