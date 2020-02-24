@@ -89,6 +89,37 @@ map <- tm_shape(all_elec) +
 tmap_save(map, "plots/elec_outliers.png",
           dpi = 300)
 
+
+res_miles <- readRDS("data/importance_miles_per_cap_tree.Rds")
+top_miles <- rownames(res_miles)[res_miles[,1] > (max(res_miles[,1]) / 4)]
+top_miles <- top_miles[top_miles != "(Intercept)"]
+all_miles <- all[!is.na(all$miles_percap),]
+all_miles <- all_miles[!is.na(all_miles$acc_town_PTfrequency),]
+
+model_miles <- lm(as.formula(paste0("miles_percap ~ ",paste(top_miles, collapse = " + "))),
+                 data = all_miles)
+
+
+all_miles$miles_predict <- predict(model_miles)
+all_miles$miles_diff <- all_miles$miles_predict - all_miles$miles_percap
+summary(all_miles$miles_diff)
+
+all_miles = all_miles[,c("LSOA11","RUC11","miles_diff")]
+all_miles = left_join(bounds, all_miles, by = c("LSOA11"))
+
+map <- tm_shape(all_miles) +
+  tm_fill(col = "miles_diff",
+          palette = "-RdYlBu",
+          title = "kWh per year",
+          style = "fixed",
+          breaks = quantile(all_miles$miles_diff, seq(0,1,0.1), na.rm = TRUE)) +
+  tm_shape(urban) +
+  tm_borders(col = "black")
+tmap_save(map, "plots/miles_outliers.png",
+          dpi = 300)
+
+
+
 #all_ru <- left_join(all, ru, by = "LSOA11")
 all_elec_plot = all_elec[!is.na(all_elec$RUC11),]
 ggplot(all_elec_plot, aes(x = stringr::str_wrap(RUC11, 15), y = elec_diff)) +
