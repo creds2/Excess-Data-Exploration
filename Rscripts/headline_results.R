@@ -215,7 +215,8 @@ order_sum <- all %>%
             numb_gas_na = sum(is.na(MeanDomGas_11_kWh)),
             iqr = IQR(total, na.rm = TRUE),
             outlier_over = sum(total > 1.5 * iqr + total_q3),
-            outlier_under = sum(total < total_q1 - 1.5 * iqr)
+            outlier_under = sum(total < total_q1 - 1.5 * iqr),
+            income = median(median_household_income, na.rm = TRUE)
             )
 
 library(tidyr)
@@ -286,9 +287,13 @@ ggplot(all_box2, aes(labs, total_emissions_per_cap, fill = supergroup_class)) +
 
 #### Map outliers
 order_sum$out_over <- order_sum$total_q3 + 1.5 * order_sum$iqr
-order_sum_join <- order_sum[,c("group_class","out_over")]
+order_sum_join <- order_sum[,c("group_class","out_over","total_q3")]
 all <- left_join(all, order_sum_join, by = c("group_class"))
 all_out <- all[all$total > all$out_over,]
+all_q4 <- all[all$total > all$total_q3,]
+
+sum(all_q4$total * all_q4$pop2011) / sum(all$total * all$pop2011) * 100
+sum(all_q4$pop2011) / sum(all$pop2011) * 100
 
 bounds = read_sf("data-prepared/LSOA_forplots.gpkg")
 bounds$country = substr(bounds$LSOA11, 1, 1)

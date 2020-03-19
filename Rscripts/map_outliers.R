@@ -110,7 +110,7 @@ all_miles = left_join(bounds, all_miles, by = c("LSOA11"))
 map <- tm_shape(all_miles) +
   tm_fill(col = "miles_diff",
           palette = "-RdYlBu",
-          title = "kWh per year",
+          title = "miles per year",
           style = "fixed",
           breaks = quantile(all_miles$miles_diff, seq(0,1,0.1), na.rm = TRUE)) +
   tm_shape(urban) +
