@@ -3,22 +3,38 @@ library(dplyr)
 library(tidyr)
 library(sf)
 library(tmap)
+library(lubridate)
 tmap_mode("plot")
-path = "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions.xlsx"
+onedrive <- "E:/OneDrive - University of Leeds/"
+#path = "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions.xlsx"
 #path = "E:/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions.xlsx"
 
-emissions <- readr::read_csv("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/19029 Robin Lovelace LSOA.txt")
+emissions <- readr::read_csv(paste0(onedrive,"Data/CREDS Data/github-secure-data/19029 Robin Lovelace LSOA.txt" ))
 names(emissions) <- c("year","LSOA","fuel","bA","bB", "bC","bD", "bE",
                      "bF", "bG", "bH", "bI",
                      "bJ", "bK", "bL", "bM",
                      "Unknown","AllCars","AvgCO2","AvgAge")
-saveRDS(emissions, "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions_hisorical_long.Rds")
+
+# rebase average ages
+emissions$rebase <- interval(lubridate::ymd("2019-03-31"), lubridate::ymd(paste0(emissions$year,"-12-31"))) / years(1)
+emissions$AvgAge <- emissions$AvgAge + emissions$rebase
+emissions$rebase <- NULL
+  
+saveRDS(emissions, paste0(onedrive,"Data/CREDS Data/github-secure-data/lsoa_emissions_hisorical_long.Rds" ))
+
+#write.csv(emissions, "E:/OneDrive - University of Leeds/Share/Historical_Car_Emissions_LSOA.csv", row.names = FALSE)
+head(emissions)
+
 
 emissions$fuel[emissions$fuel == "DIESEL"] <- "DI"
 emissions$fuel[emissions$fuel == "PETROL"] <- "PT"
 emissions$fuel[emissions$fuel == "HYBRID ELECTRIC"] <- "HE"
 emissions$fuel[emissions$fuel == "OTHER"] <- "OT"
 emissions$fuel[emissions$fuel == "ELECTRIC DIESEL"] <- "ED"
+
+
+
+
 
 
 emissions2 <- emissions %>%
@@ -32,9 +48,14 @@ emissions2[3:77] <- lapply(emissions2[3:77], function(x){
 emissions3 <- emissions2 %>%
   pivot_wider(names_from = year, values_from = names(emissions2)[!names(emissions2) %in% c("year","LSOA")] )
 summary(duplicated(emissions3$LSOA))
-saveRDS(emissions3, "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/github-secure-data/lsoa_emissions_historical_wide.Rds")
 
+saveRDS(emissions3, paste0(onedrive,"Data/CREDS Data/github-secure-data/lsoa_emissions_historical_wide.Rds"))
 
+emissions_public <- emissions[,c("year","LSOA","fuel","AllCars","AvgCO2","AvgAge")]
+summary(emissions_public$AllCars)
+emissions_public$AllCars[emissions_public$AllCars <= 3] <- NA
+summary(emissions_public$AllCars)
+write.csv(emissions_public, "E:/OneDrive - University of Leeds/Share/Historical_Car_Emissions_LSOA_public.csv", row.names = FALSE)
 # Make some plots
 
 bounds <- read_sf("../Excess-Data-Exploration/data-prepared/LSOA_forplots.gpkg")

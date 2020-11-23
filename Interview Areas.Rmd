@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Setup
 
 ```{r, include=FALSE}
-secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data/Tim Share"
+secure_path <- "E:/OneDrive - University of Leeds/Data/CREDS Data/Tim Share"
 
 ```
 
@@ -40,8 +40,8 @@ population <- readRDS("data-prepared/population.Rds") # Not full UK
 density <- readRDS("data-prepared/populationDensity.Rds")
 rooms <- readRDS("data-prepared/rooms.Rds")
 ru <- readRDS("data-prepared/ruralurban.Rds")
-access_town <- readRDS("data-prepared/acess_town.Rds")
-access_town <- access_town[,c("LSOA_code","%All15_PT/walk1,3")]
+access_town <- readRDS("data-prepared/access_town.Rds")
+access_town <- access_town[,c("LSOA11","acc_town_p15min_PT_walk")]
 clasf <- readRDS("data-prepared/area_classification.Rds")
 
 dir.create("temp")
@@ -142,7 +142,7 @@ all <- left_join(all, density, by = c("LSOA11" = "LSOA11"))
 all <- left_join(all, experian, by = c("LSOA11" = "LSOA"))
 all <- left_join(all, rooms, by = c("LSOA11" = "geography.code"))
 all <- left_join(all, ru, by = "LSOA11")
-all <- left_join(all, access_town, by = c("LSOA11" = "LSOA_code"))
+all <- left_join(all, access_town, by = c("LSOA11" = "LSOA11"))
 all <- left_join(all, clasf, by = c("LSOA11" = "SOA Code"))
 rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, rooms, ru, access_town)
 ```
@@ -150,10 +150,10 @@ rm(age, census, density, elec, EPC, gas, heating, mot, population, experian, roo
 ## Step 1: Top 30% of Gas, Electricity, or Driving
 
 ```{r, include=FALSE}
-gas_decice <- quantile(all$MeanDomGas_17_kWh, seq(0.1, 0.9, 0.1), na.rm = TRUE)
-elec_decice <- quantile(all$MeanDomElec_17_kWh, seq(0.1, 0.9, 0.1), na.rm = TRUE)
-drive_decice <- quantile(all$miles_percap, seq(0.1, 0.9, 0.1), na.rm = TRUE)
-epc_decile <- quantile(all$Crr_EE, seq(0.1, 0.9, 0.1), na.rm = TRUE)
+gas_decice <- quantile(all$MeanDomGas_17_kWh, seq(0, 1, 0.1), na.rm = TRUE)
+elec_decice <- quantile(all$MeanDomElec_17_kWh, seq(0, 1, 0.1), na.rm = TRUE)
+drive_decice <- quantile(all$miles_percap, seq(0, 1, 0.1), na.rm = TRUE)
+epc_decile <- quantile(all$Crr_EE, seq(0, 1, 0.1), na.rm = TRUE)
 ```
 
 ### Gas
@@ -178,8 +178,18 @@ drive_decice
 No filter areas that are in top 30% for at least one category
 
 ```{r, echo=FALSE}
-all$MeanDomGas_17_kWh[is.na(all$MeanDomGas_17_kWh)] <- 0
-all_sub <- all[all$MeanDomElec_17_kWh > elec_decice[7] | all$MeanDomGas_17_kWh > gas_decice[7] | all$miles_percap > drive_decice[7], ]
+all$gas_centile <- ntile(all$MeanDomGas_17_kWh, 100)
+all$elec_centile <- ntile(all$MeanDomElec_17_kWh, 100)
+all$drive_centile <- ntile(all$miles_percap, 100)
+
+all_sub <- all[!is.na(all$gas_centile),]
+all_sub <- all_sub[!is.na(all_sub$elec_centile),]
+all_sub <- all_sub[all_sub$elec_centile > 69 & all_sub$gas_centile > 69 & all_sub$drive_centile > 69, ]
+
+all_sub <- all_sub[,c("LSOA11","area_supergroup","area_group",
+                      "gas_centile","elec_centile","drive_centile", 
+                      "median_household_income","mean_household.size",
+                      "RUC11","acc_town_p15min_PT_walk","Crr_EE")]
 ```
 
 Just under 50% of LSOAs are in the top 30% for at least one variable.
@@ -206,8 +216,8 @@ Filter out rural areas, now down to 33% of LSOAs
 Using the DFT accessibility statistics to filter out areas where less than 50% of people are within 15 minutes of the town centre by walking or public transport.
 
 ```{r, echo=FALSE}
-all_sub <- all_sub[!is.na(all_sub$`%All15_PT/walk1,3`),]
-all_sub <- all_sub[all_sub$`%All15_PT/walk1,3` > 50, ]
+all_sub <- all_sub[!is.na(all_sub$acc_town_p15min_PT_walk),]
+all_sub <- all_sub[all_sub$acc_town_p15min_PT_walk > 50, ]
 ```
 
 Now down to 20 % of LSOAs
@@ -221,7 +231,29 @@ epc_decile
 ```
 
 ```{r, echo=FALSE}
-all_sub <- all_sub[all_sub$Crr_EE > epc_decile[5] , ]
+all_sub <- all_sub[all_sub$Crr_EE > epc_decile[6] , ]
+
+# sort
+all_sub <- arrange(all_sub, 
+               desc(drive_centile),
+               desc(gas_centile),
+               desc(elec_centile))
+
+all_sub <- left_join(all_sub, bounds, by = c("LSOA11"))
+all_sub <- st_as_sf(all_sub)
+st_crs(all_sub) <- 27700
+
+postcodes <- readRDS("../../ITSleeds/OpenPostcodes/data-output/code_point_open.Rds")
+postcodes_sub <- postcodes[all_sub,]
+postcodes_inter <- st_intersects(all_sub, postcodes_sub)
+postcodes_sub <- st_drop_geometry(postcodes_sub)
+postcodes_match <- lapply(postcodes_inter, function(x){
+  paste(postcodes_sub$postcode[x], collapse = ", ")
+})
+all_sub$postcodes <- unlist(postcodes_match)
+
+write.csv(st_drop_geometry(all_sub), "data/interview_areas_top_30p_postcodes.csv", row.names = FALSE)
+
 ```
 
 Down to 7% of LSOAs, so let's look at where we are.
@@ -230,24 +262,12 @@ Down to 7% of LSOAs, so let's look at where we are.
 A quick map, we have quite a good geographic spread.
 See an interactive map at  https://www.wisemover.co.uk/creds/
 ```{r, echo=FALSE}
-all_sub <- left_join(all_sub, bounds, by = c("LSOA11"))
-all_sub <- st_as_sf(all_sub)
+postcodes_sub <- postcodes[all_sub,]
+
 tm_shape(all_sub) +
-  tm_polygons(col = "area_supergroup",
-              popup.vars = c("MeanDomElec_11_kWh", 
-                             "MeanDomGas_11_kWh", 
-                             "cars_percap", 
-                             "miles_percap",
-                             "T2W_Car.",
-                             "pHeating_Gas",
-                             "pHeating_Electric",
-                             "pHeating_Other",
-                             "median_household_income",
-                             "mean_household.size",
-                             "mean_rooms",
-                             "area_supergroup",
-                             "area_group"
-                             ))
+  tm_polygons(col = "drive_centile") +
+  tm_shape(postcodes_sub) +
+  tm_dots()
 
 
 
@@ -260,7 +280,8 @@ tm_shape(all_sub) +
 Or we could look for areas that a high in all categories. Only 556 LSOAs are in the top 30% for all 3 energy types.
 
 ```{r, echo=FALSE}
-tight  <- all_sub[all_sub$MeanDomElec_11_kWh > elec_decice[7] & all_sub$MeanDomGas_11_kWh > gas_decice[7] & all_sub$miles_percap > drive_decice[7], ]
+tight  <- all_sub[all_sub$MeanDomElec_11_kWh > elec_decice[8] & all_sub$MeanDomGas_11_kWh > gas_decice[8] & all_sub$miles_percap > drive_decice[8], ]
+tight <- tight[!is.na(tight$LSOA11),]
 
 tm_shape(tight) +
   tm_polygons(col = "area_supergroup",
@@ -280,6 +301,17 @@ tm_shape(tight) +
                              ))
 
 
+write.csv(st_drop_geometry(tight[,c("LSOA11","area_group","area_supergroup","MeanDomElec_11_kWh", 
+                             "MeanDomGas_11_kWh", 
+                             "cars_percap", 
+                             "miles_percap",
+                             "T2W_Car.",
+                             "pHeating_Gas",
+                             "pHeating_Electric",
+                             "pHeating_Other",
+                             "median_household_income",
+                             "mean_household.size",
+                             "mean_rooms")]),"data/interview_areas_top_30p.csv", row.names = FALSE)
 
 ```
 
