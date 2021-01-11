@@ -10,6 +10,14 @@ if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/Data/CREDS Data")
 }
 
 all = readRDS(paste0(secure_path,"/github-secure-data/lsoa_all2.Rds"))
+all$supergroup_class <- factor(all$supergroup_class, levels = c("Cosmopolitan student neighbourhoods",
+                                                                "Inner city cosmopolitan",
+                                                                "Multicultural living",
+                                                                "Hard-pressed communities",
+                                                                "Industrious communities",
+                                                                "Ethnically diverse professionals",
+                                                                "Suburban living",
+                                                                "Countryside living"))
 
 res_gas <- readRDS("data/importance_gas_tree_final.Rds")
 top_gas <- rownames(res_gas)[res_gas[,1] > (max(res_gas[,1]) / 4)]
@@ -41,18 +49,21 @@ all_gas$gas_predicted <- predict(model_gas)
 # 
 # plot(all_gas$Outright, all_gas$gas_resid)
 
-ggplot(all_gas, aes(gas_kwh_percap, gas_predicted, colour = supergroup_class)) +
-  geom_point(size = 0.1, shape = 15) +
+ggplot(all_gas, aes(gas_kwh_percap, gas_predicted, group = supergroup_class)) +
+  geom_hex(alpha = 0.9) +
+  scale_fill_gradientn(colours = c("lightblue","yellow","red")) +
+  facet_wrap(~supergroup_class, ncol = 2) + 
+  coord_fixed() +
+  theme(legend.position="top") +
   xlab("Actual mean gas consumption (kWh)") +
   ylab("Predicted consumption (kWh)") +
   scale_x_continuous(limits=c(0, 18000), expand = c(0, 0)) +
-  scale_y_continuous(limits=c(-1000, 10000), expand = c(0, 0)) +
+  scale_y_continuous(limits=c(0, 10000), expand = c(0, 0)) +
   geom_abline(intercept = 0, colour = "red") +
-  theme(legend.position = c(0.8, 0.25), 
-        legend.background = element_rect(fill=alpha('white', 0.4))) +
+  theme(legend.background = element_rect(fill=alpha('white', 0.4))) +
   guides(colour = guide_legend(override.aes = list(size=2, shape = 19))) +
   labs(colour = "") +
-  ggsave("plots/gas_model2.png", width = 6, height = 3, 
+  ggsave("plots/gas_model3.png", width = 4, height = 6, 
          dpi = 600, scale = 1.8)
   
 
@@ -69,18 +80,21 @@ summ
 all_elec <- all[!is.na(all$elec_kwh_percap),]
 all_elec$elec_predicted <- predict(model_elec)
 
-ggplot(all_elec, aes(elec_kwh_percap, elec_predicted, colour = supergroup_class)) +
-  geom_point(size = 0.1, shape = 15) +
+ggplot(all_elec, aes(elec_kwh_percap, elec_predicted, group = supergroup_class)) +
+  geom_hex(alpha = 0.9) +
+  scale_fill_gradientn(colours = c("lightblue","yellow","red")) +
+  facet_wrap(~supergroup_class, ncol = 2) + 
+  coord_fixed() +
+  theme(legend.position="top") +
   xlab("Actual mean electricity consumption (kWh)") +
   ylab("Predicted consumption (kWh)") +
-  scale_x_continuous(limits=c(0, 6700), expand = c(0, 0)) +
+  scale_x_continuous(limits=c(0, 7999), expand = c(0, 0)) +
   scale_y_continuous(limits=c(0, 4500), expand = c(0, 0)) +
   geom_abline(intercept = 0, colour = "red") +
-  theme(legend.position = c(0.82, 0.3), 
-        legend.background = element_rect(fill=alpha('white', 0.4))) +
+  theme(legend.background = element_rect(fill=alpha('white', 0.4))) +
   guides(colour = guide_legend(override.aes = list(size=2, shape = 19))) +
   labs(colour = "") +
-  ggsave("plots/electricity_model2.png", width = 6, height = 3, 
+  ggsave("plots/electricity_model3.png", width = 4, height = 6, 
          dpi = 600, scale = 1.8)
 
 
@@ -110,18 +124,24 @@ summ <- summary(model_miles)
 summ
 all_miles$miles_predicted <- predict(model_miles)
 
-ggplot(all_miles, aes(miles_percap, miles_predicted, colour = supergroup_class)) +
-  geom_point(size = 0.1, shape = 15) +
-  xlab("Actual mean miles per capita") +
-  ylab("Predicted miles per capita") +
-  scale_x_continuous(limits=c(0, 28000), expand = c(0, 0)) +
-  scale_y_continuous(limits=c(0, 22000), expand = c(0, 0)) +
+all_miles$km_percap <- all_miles$miles_percap * 1.60934
+all_miles$km_predicted <- all_miles$miles_predicted * 1.60934
+
+ggplot(all_miles, aes(km_percap, km_predicted, group = supergroup_class)) +
+  geom_hex(alpha = 0.9) +
+  scale_fill_gradientn(colours = c("lightblue","yellow","red")) +
+  facet_wrap(~supergroup_class, ncol = 2) + 
+  #coord_fixed() +
+  theme(legend.position="top") +
+  xlab("Actual mean km per capita") +
+  ylab("Predicted km per capita") +
+  scale_x_continuous(limits=c(0, 45000), expand = c(0, 0)) +
+  scale_y_continuous(limits=c(0, 34000), expand = c(0, 0)) +
   geom_abline(intercept = 0, colour = "red") +
-  theme(legend.position = c(0.12, 0.8), 
-        legend.background = element_rect(fill=alpha('white', 0.4))) +
+  theme(legend.background = element_rect(fill=alpha('white', 0.4))) +
   guides(colour = guide_legend(override.aes = list(size=2, shape = 19))) +
   labs(colour = "") +
-  ggsave("plots/miles_model.png", width = 6, height = 3, 
+  ggsave("plots/miles_model2.png", width = 4, height = 6, 
          dpi = 600, scale = 1.8)
 
 # png(file = "plots/miles_model.png", width = 1024, height = 768, pointsize = 24)

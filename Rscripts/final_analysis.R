@@ -8,8 +8,10 @@ library(tmap)
 
 if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/Data/CREDS Data")){
   secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/Data/CREDS Data"
-} else {
+} else if(dir.exists("E:/OneDrive - University of Leeds/Data/CREDS Data")){
   secure_path <- "E:/OneDrive - University of Leeds/Data/CREDS Data"
+} else {
+  secure_path <- "D:/OneDrive - University of Leeds/Data/CREDS Data"
 }
 
 # Read In Data
@@ -104,6 +106,8 @@ median_gas <- median(all$MeanDomGas_11_kWh, na.rm = TRUE)
 all$nongas_total <- all$non_gas_dwellings * median_gas
 all$nongas_kwh_percap <- all$nongas_total / all$pop2011
 
+# Get Region Bounds
+la <- readRDS("data-prepared/la_bounds.Rds")
 
 
 # Plot General Distribution of ENergy Use
@@ -117,9 +121,11 @@ map1 <- tm_shape(bounds) +
   tm_fill(c("driving_kwh_percap","elec_kwh_percap","gas_kwh_percap","nongas_kwh_percap"),
           palette = c("#4575b4","#74add1","#abd9e9","#e0f3f8","#ffffbf","#fee090","#fdae61","#f46d43","#d73027"),
           breaks = c(0,1000,2000,3000,4000,5000,6000,7000,8000,35000),
-          title = c("Driving","Electricity","Mains Gas","Non-Gas Heating"))
+          title = c("Driving","Electricity","Mains Gas","Non-Gas Heating")) +
+  tm_shape(la) +
+  tm_borders("grey")
 
-tmap_save(map1,"plots/energy_use_map_facets4.png")
+tmap_save(map1,"plots/energy_use_map_facets5.png")
 
 
 # Variables to exclude
