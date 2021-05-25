@@ -6,6 +6,8 @@ library(ggplot2)
 
 if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/Data/CREDS Data")){
   secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/Data/CREDS Data"
+} else if(dir.exists("D:/OneDrive - University of Leeds/Data/CREDS Data")){
+  secure_path <- "D:/OneDrive - University of Leeds/Data/CREDS Data"
 } else {
   secure_path <- "E:/OneDrive - University of Leeds/Data/CREDS Data"
 }
@@ -36,12 +38,13 @@ model_gas <- lm(as.formula(paste0("gas_kwh_percap ~ ",paste(top_gas, collapse = 
 all_gas <- all[!is.na(all$gas_kwh_percap),]
 all_gas$gas_predict <- predict(model_gas)
 all_gas$gas_diff <- all_gas$gas_predict - all_gas$gas_kwh_percap
-
+all_gas$gas_diff_per <- all_gas$gas_diff / all_gas$gas_predict * 100
 
 
 
 
 summary(all_gas$gas_diff)
+summary(all_gas$gas_diff_per)
 
 all_gas = all_gas[,c("LSOA11","median_household_income","gas_diff")]
 all_gas = left_join(bounds, all_gas, by = c("LSOA11"))
@@ -61,7 +64,7 @@ gas_poor <- gas_poor[gas_poor$gas_diff > 0,]
 map <- tm_shape(gas_rich, bbox = st_bbox(la)) +
   tm_fill(col = "gas_diff", 
           palette = "Purples",
-          title = "Gas Overconsumers\n(kWh per capita)\nHigh income areas",
+          title = "Gas Overconsumption\n(kWh per capita)\nHigh income areas",
           breaks = c(0,1000,2000,6100)) +
   tm_legend(position = c(0,0.7)) +
   tm_shape(gas_poor) +
@@ -72,7 +75,7 @@ map <- tm_shape(gas_rich, bbox = st_bbox(la)) +
   tm_shape(la) +
   tm_borders()
 
-tmap_save(map,"plots/gas_overconsumers.png")
+tmap_save(map,"plots/gas_overconsumers2.png")
 
 res_elec <- readRDS("data/importance_elec_tree_final.Rds")
 top_elec <- rownames(res_elec)[res_elec[,1] > (max(res_elec[,1]) / 4)]
@@ -102,7 +105,7 @@ elec_poor <- elec_poor[elec_poor$elec_diff > 0,]
 map <- tm_shape(elec_rich, bbox = st_bbox(la)) +
   tm_fill(col = "elec_diff", 
           palette = "Purples",
-          title = "Electricity Overconsumers\n(kWh per capita)\nHigh income areas",
+          title = "Electricity Overconsumption\n(kWh per capita)\nHigh income areas",
           breaks = c(0,100,500,2600)) +
   tm_legend(position = c(0,0.7)) +
   tm_shape(elec_poor) +
@@ -113,7 +116,7 @@ map <- tm_shape(elec_rich, bbox = st_bbox(la)) +
   tm_shape(la) +
   tm_borders()
 
-tmap_save(map,"plots/electric_overconsumers.png")
+tmap_save(map,"plots/electric_overconsumers2.png")
 
 res_miles <- readRDS("data/importance_miles_per_cap_tree.Rds")
 top_miles <- rownames(res_miles)[res_miles[,1] > (max(res_miles[,1]) / 4)]
@@ -131,6 +134,8 @@ summary(all_miles$miles_diff)
 all_miles = all_miles[,c("LSOA11","median_household_income","miles_diff")]
 all_miles = left_join(bounds, all_miles, by = c("LSOA11"))
 
+all_miles$km_diff <- all_miles$miles_diff * 1.60934
+
 miles_rich <- all_miles[all_miles$median_household_income >= median_income,]
 miles_poor <- all_miles[all_miles$median_household_income < median_income,]
 
@@ -142,16 +147,16 @@ miles_poor <- miles_poor[miles_poor$miles_diff > 0,]
 
 
 map <- tm_shape(miles_rich, bbox = st_bbox(la)) +
-  tm_fill(col = "miles_diff", 
+  tm_fill(col = "km_diff", 
           palette = "Purples",
-          title = "Driving Overconsumers\n(miles per capita)\nHigh income areas",
-          breaks = c(0,500,1000,3200)) +
+          title = "Driving Overconsumption\n(km per capita)\nHigh income areas",
+          breaks = c(0,500,1000,5200)) +
   tm_legend(position = c(0,0.7)) +
   tm_shape(miles_poor) +
-  tm_fill(col = "miles_diff",
+  tm_fill(col = "km_diff",
           palette = "Greens",
           title = "Low income areas",
-          breaks = c(0,500,1000,3200)) +
+          breaks = c(0,500,1000,5200)) +
   tm_shape(la[!la$la %in% c("Gwynedd","Ceredigion","Powys","Pembrokeshire",
                             "Carmarthenshire","Swansea","Neath Port Talbot",
                             "Bridgend","The Vale of Glamorgan","Cardiff","Caerphilly",
@@ -161,4 +166,4 @@ map <- tm_shape(miles_rich, bbox = st_bbox(la)) +
                             "Blaenau Gwent","Torfaen"),]) +
   tm_borders()
 
-tmap_save(map,"plots/miles_overconsumers.png")
+tmap_save(map,"plots/miles_overconsumers2.png")
