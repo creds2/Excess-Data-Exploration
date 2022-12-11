@@ -13,7 +13,7 @@ tmap_mode("plot")
 if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/")){
   secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/"
 } else {
-  secure_path <- "E:/OneDrive - University of Leeds/"
+  secure_path <- "D:/OneDrive - University of Leeds/"
 }
 
 la <- readRDS("data-prepared/la_bounds.Rds")

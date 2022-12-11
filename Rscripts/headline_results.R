@@ -2,6 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(sf)
 library(tmap)
+library(hexbin)
 # heatline results
 if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/Data/CREDS Data")){
   secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/Data/CREDS Data"
@@ -292,7 +293,7 @@ lvls <- c("1a Cosmopolitan student neighbourhoods", "6a Inner city cosmopolitan"
 
 all_box$labs <- factor(all_box$Class,
                        levels = lvls ,ordered = TRUE)
-
+all_box$name[all_box$name == "Non-Gas"] <- "Non-Gas/Electric Heating"
 
 ggplot(all_box, aes(labs, value, fill = name )) +
   geom_boxplot(outlier.shape = NA) +
@@ -300,10 +301,44 @@ ggplot(all_box, aes(labs, value, fill = name )) +
   coord_flip() +
   ylab("Energy use per capita (kWh)") +
   xlab("Area Classification") +
-  theme(legend.position = c(0.9, 0.15), 
+  theme(legend.position = c(0.8, 0.2), 
         legend.background = element_rect(fill=alpha('white', 0.4))) +
   labs(fill = "Energy Type") +
-  ggsave("plots/box_energy.png", width = 6, height = 4, 
+  ggsave("plots/box_energy2.png", width = 6, height = 4, 
+         dpi = 600, scale = 1.8)
+
+
+all_drive <- all[,c("driving_kwh_percap","group_class","supergroup_class")]
+foo = all_drive %>%
+  group_by(group_class) %>%
+  summarise(ave = mean(value, na.rm = TRUE))
+foo <- foo[order(foo$ave, decreasing = FALSE),]
+
+lvls2 <- c("6a Inner city cosmopolitan","4d Hard-pressed flat dwellers",
+ "1a Cosmopolitan student neighbourhoods", "7b Young ethnic communities",
+ "4a Challenged white communities","7a Urban cultural mix",
+ "4c Hampered neighbourhoods","4b Constrained renters",
+ "5d Endeavouring social renters","3d Households in terraces and flats",
+ "5e Primary sector workers","5a Ageing urban communities",
+ "3c Highly qualified professionals","5b Aspiring urban households",
+ "5c Comfortable neighbourhoods","3b Asian traits",
+ "8b Ageing suburbanites","2d Rural traits",
+ "3a Achieving neighbourhoods","8c Comfortable suburbia",
+ "8a Affluent communities","2a Ageing rural neighbourhoods",
+ "2c Remoter communities",
+ "2b Prospering countryside life")
+
+all_drive$labs <- factor(all_drive$group_class,
+                       levels = lvls2 ,ordered = TRUE)
+
+plot1 <- ggplot(all_drive, aes(labs, driving_kwh_percap, fill = supergroup_class )) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 9000), expand = c(0, 0)) +
+  coord_flip() +
+  ylab("Driving annual energy use per capita (kWh)") +
+  xlab("Area Classification") +
+  theme(legend.position = "none")
+  ggsave("plots/box_energy_driving.png", plot1, width = 6, height = 4, 
          dpi = 600, scale = 1.8)
 
 

@@ -5,7 +5,7 @@ library(Hmisc)
 if(dir.exists("E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data")){
   secure_path <- "E:/Users/earmmor/OneDrive - University of Leeds/CREDS Data"
 } else {
-  secure_path <- "E:/OneDrive - University of Leeds/Data/CREDS Data"
+  secure_path <- "D:/OneDrive - University of Leeds/Data/CREDS Data"
 }
 
 bounds <- st_read("data-prepared/LSOA_generalised.gpkg")

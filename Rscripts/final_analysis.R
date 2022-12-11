@@ -108,7 +108,29 @@ all$nongas_kwh_percap <- all$nongas_total / all$pop2011
 
 # Get Region Bounds
 la <- readRDS("data-prepared/la_bounds.Rds")
-
+la <- la[!la$la %in% c("Blaenau Gwent",
+                       "Bridgend",
+                       "Cardiff",
+                       "Carmarthenshire",
+                       "Caerphilly",
+                       "Ceredigion",
+                       "Conwy",
+                       "Denbighshire",
+                       "Flintshire",
+                       "Gwynedd",
+                       "Isle of Anglesey",
+                       "Merthyr Tydfil",
+                       "Monmouthshire",
+                       "Neath Port Talbot",
+                       "Newport",
+                       "Pembrokeshire",
+                       "Powys",
+                       "Rhondda Cynon",
+                       "Swansea",
+                       "Torfaen",
+                       "Wrexham",
+                       "The Vale of Glamorgan",
+                       "Rhondda Cynon Taf"),]
 
 # Plot General Distribution of ENergy Use
 bounds <- left_join(bounds, all[,c("LSOA11","gas_kwh_percap","driving_kwh_percap","elec_kwh_percap","nongas_kwh_percap")])
@@ -126,6 +148,18 @@ map1 <- tm_shape(bounds) +
   tm_borders("grey")
 
 tmap_save(map1,"plots/energy_use_map_facets5.png")
+
+tmap_mode("plot")
+map2 <- tm_shape(bounds[substr(bounds$LSOA11,1,1) == "E",]) +
+  tm_fill(c("driving_kwh_percap"),
+          palette = c("#4575b4","#74add1","#abd9e9","#e0f3f8","#ffffbf","#fee090","#fdae61","#f46d43","#d73027"),
+          breaks = c(0,2000,3000,3500,4000,4500,5000,5500,6000,35000),
+          title = c("Driving annual energy use (kWh/person)")) +
+  tm_shape(la) +
+  tm_borders("grey")
+
+tmap_save(map2,"plots/energy_use_driving.png")
+
 
 
 # Variables to exclude
